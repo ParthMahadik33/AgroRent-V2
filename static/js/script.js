@@ -4,25 +4,58 @@ document.addEventListener('DOMContentLoaded', function() {
     initScrollAnimations();
     initVideoHandling();
     initNavbar();
+    initProfileDropdown();
+    initFlashMessages();
 });
 
 // Smooth scrolling for anchor links
 function initSmoothScrolling() {
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
+            const href = this.getAttribute('href');
+            if (href !== '#' && href.length > 1) {
+                e.preventDefault();
+                const target = document.querySelector(href);
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
             }
         });
     });
 }
 
-// Enhanced Navbar functionality for Agriculture Theme
+// Profile Dropdown functionality
+function initProfileDropdown() {
+    const profileBtn = document.getElementById('profile-btn');
+    const dropdownMenu = document.getElementById('dropdown-menu');
+    
+    if (!profileBtn || !dropdownMenu) return;
+
+    // Toggle dropdown on button click
+    profileBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        dropdownMenu.classList.toggle('active');
+        profileBtn.classList.toggle('active');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!profileBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+            dropdownMenu.classList.remove('active');
+            profileBtn.classList.remove('active');
+        }
+    });
+
+    // Prevent dropdown from closing when clicking inside
+    dropdownMenu.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+}
+
+// Enhanced Navbar functionality
 function initNavbar() {
     const navToggle = document.getElementById('nav-toggle');
     const navMenu = document.getElementById('nav-menu');
@@ -66,7 +99,7 @@ function initNavbar() {
                 navbar.classList.remove('scrolled');
             }
             
-            // Hide/show navbar on scroll (optional)
+            // Hide/show navbar on scroll (optional - disable if you don't want this)
             if (currentScrollY > lastScrollY && currentScrollY > 200) {
                 navbar.style.transform = 'translateY(-100%)';
             } else {
@@ -173,7 +206,38 @@ function initVideoHandling() {
     video.setAttribute('playsinline', '');
 }
 
-// Additional utility functions
+// Flash messages auto-dismiss
+function initFlashMessages() {
+    const alerts = document.querySelectorAll('.alert');
+    
+    alerts.forEach(alert => {
+        // Auto dismiss after 5 seconds
+        setTimeout(() => {
+            alert.style.animation = 'slideOut 0.3s ease forwards';
+            setTimeout(() => {
+                alert.remove();
+            }, 300);
+        }, 5000);
+    });
+}
+
+// Add slide out animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
+
+// Utility functions
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -186,55 +250,43 @@ function debounce(func, wait) {
     };
 }
 
-// Enhanced scroll effects (optional)
-function initEnhancedScrollEffects() {
-    const hero = document.querySelector('.hero');
-    const heroContent = document.querySelector('.hero-content');
+// Form validation for auth pages
+function initFormValidation() {
+    const forms = document.querySelectorAll('.auth-form');
     
-    if (!hero || !heroContent) return;
-
-    window.addEventListener('scroll', debounce(() => {
-        const scrolled = window.pageYOffset;
-        const parallaxSpeed = 0.5;
-        
-        // Parallax effect for hero content
-        if (scrolled < hero.offsetHeight) {
-            heroContent.style.transform = `translateY(${scrolled * parallaxSpeed}px)`;
-        }
-    }, 10));
-}
-
-// Category card interactions
-function initCategoryCardEffects() {
-    const cards = document.querySelectorAll('.category-card');
-    
-    cards.forEach(card => {
-        card.addEventListener('mouseenter', function() {
-            // Add subtle tilt effect
-            this.style.transform = 'translateY(-10px) rotateY(2deg)';
-        });
-        
-        card.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0) rotateY(0)';
+    forms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const password = form.querySelector('input[name="password"]');
+            const confirmPassword = form.querySelector('input[name="confirm_password"]');
+            
+            if (confirmPassword && password.value !== confirmPassword.value) {
+                e.preventDefault();
+                alert('Passwords do not match!');
+                confirmPassword.focus();
+                return false;
+            }
+            
+            if (password && password.value.length < 6) {
+                e.preventDefault();
+                alert('Password must be at least 6 characters long!');
+                password.focus();
+                return false;
+            }
         });
     });
 }
 
-// Initialize enhanced features (call after DOM is loaded)
-document.addEventListener('DOMContentLoaded', function() {
-    // Uncomment the following lines to enable enhanced effects
-    // initEnhancedScrollEffects();
-    // initCategoryCardEffects();
-});
+// Initialize form validation
+document.addEventListener('DOMContentLoaded', initFormValidation);
 
 // Error handling for missing elements
 function handleMissingElements() {
-    const requiredElements = ['.hero', '.video-background', '.categories-grid'];
+    const requiredElements = ['.hero', '.categories-grid'];
     
     requiredElements.forEach(selector => {
         const element = document.querySelector(selector);
         if (!element) {
-            console.warn(`Required element not found: ${selector}`);
+            console.warn(`Optional element not found: ${selector}`);
         }
     });
 }

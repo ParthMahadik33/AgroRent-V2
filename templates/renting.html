@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rent Equipment - AgroRent</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/renting.css') }}">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="{{ url_for('index') }}">
+                    <span class="logo-icon">🌾</span>
+                    AgroRent
+                </a>
+            </div>
+            <div class="nav-right">
+                {% if session.user_id %}
+                <div class="profile-dropdown">
+                    <button class="profile-btn" id="profile-btn">
+                        <i class="fas fa-user-circle"></i>
+                        <span class="username">{{ session.user_name }}</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="dropdown-menu" id="dropdown-menu">
+                        <a href="{{ url_for('rentdashboard') }}" class="dropdown-item">
+                            <i class="fas fa-tractor"></i>
+                            <span>Renting Dashboard</span>
+                        </a>
+                        <a href="{{ url_for('listdashboard') }}" class="dropdown-item">
+                            <i class="fas fa-list"></i>
+                            <span>Listing Dashboard</span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="{{ url_for('signout') }}" class="dropdown-item logout">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="auth-buttons">
+                    <a href="{{ url_for('signin') }}" class="nav-btn login-btn">Sign In</a>
+                    <a href="{{ url_for('signup') }}" class="nav-btn signup-btn">Sign Up</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="renting-container">
+        <div class="page-header">
+            <h1><i class="fas fa-tractor"></i> Available Equipment</h1>
+            <p>Browse and rent farm machinery from local owners</p>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-section">
+            <div class="filter-group">
+                <label for="category-filter"><i class="fas fa-filter"></i> Category</label>
+                <select id="category-filter">
+                    <option value="">All Categories</option>
+                    <option value="Tractor">Tractor</option>
+                    <option value="Harvester">Harvester</option>
+                    <option value="Sprayer">Sprayer</option>
+                    <option value="Tiller">Tiller</option>
+                    <option value="Seed Drill">Seed Drill</option>
+                    <option value="Pump">Pump</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="location-filter"><i class="fas fa-map-marker-alt"></i> Location</label>
+                <input type="text" id="location-filter" placeholder="State, District, or City">
+            </div>
+            <button class="btn-filter" id="apply-filters">
+                <i class="fas fa-search"></i> Search
+            </button>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading-state" id="loading-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading equipment...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="empty-state" style="display: none;">
+            <i class="fas fa-inbox"></i>
+            <h3>No equipment found</h3>
+            <p>Try adjusting your filters or check back later</p>
+        </div>
+
+        <!-- Listings Grid -->
+        <div class="listings-grid" id="listings-grid">
+            <!-- Cards will be inserted here by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div class="details-modal" id="details-modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <button class="modal-close" id="close-modal">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="modal-body" id="modal-body">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Rental Modal -->
+    <div class="rental-modal" id="rental-modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <button class="modal-close" id="close-rental-modal">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="rental-form-container" id="rental-form-container">
+                <!-- Rental form will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/renting.js') }}"></script>
+</body>
+</html>
+
+

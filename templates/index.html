@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroRent</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    
+<!-- Navigation Bar -->
+<nav class="navbar">
+    <div class="nav-container">
+        <div class="nav-logo">
+            <a href="{{ url_for('index') }}">
+                <span class="logo-icon">🌾</span>
+                AgroRent
+            </a>
+        </div>
+        <div class="nav-right">
+            {% if session.user_id %}
+            <!-- Profile Dropdown for logged in users -->
+            <div class="profile-dropdown">
+                <button class="profile-btn" id="profile-btn">
+                    <i class="fas fa-user-circle"></i>
+                    <span class="username">{{ session.user_name }}</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="dropdown-menu" id="dropdown-menu">
+                    <a href="{{ url_for('rentdashboard') }}" class="dropdown-item">
+                        <i class="fas fa-tractor"></i>
+                        <span>Renting Dashboard</span>
+                    </a>
+                    <a href="{{ url_for('listdashboard') }}" class="dropdown-item">
+                        <i class="fas fa-list"></i>
+                        <span>Listing Dashboard</span>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a href="{{ url_for('signout') }}" class="dropdown-item logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </a>
+                </div>
+            </div>
+            {% else %}
+            <!-- Auth buttons for non-logged in users -->
+            <div class="auth-buttons">
+                <a href="{{ url_for('signin') }}" class="nav-btn login-btn">Sign In</a>
+                <a href="{{ url_for('signup') }}" class="nav-btn signup-btn">Sign Up</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="video-background">
+            <!-- Placeholder video - in production, replace with actual video URL -->
+            <video autoplay muted loop>
+                <source src="/assets/Hero page video.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+        <div class="video-overlay"></div>
+        
+        <div class="hero-content">
+            <img src="/assets/hero text.png" alt="AgroRent Logo" class="logo">
+            <p class="hero-tagline">Rent Farm Machinery. Grow More, Spend Less.</p>
+            <p class="hero-subtext">Discover affordable tools near you.</p>
+            <div class="cta-buttons">
+                {% if session.user_id %}
+                <a href="{{ url_for('listing') }}" class="cta-button cta-primary">Start Listing</a>
+                <a href="{{ url_for('renting') }}" class="cta-button cta-secondary">Start Renting</a>
+                {% else %}
+                <a href="{{ url_for('signup') }}" class="cta-button cta-secondary">Get Started</a>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
