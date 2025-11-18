@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const prevBtn = document.getElementById('prev-btn');
     const nextBtn = document.getElementById('next-btn');
     const submitBtn = document.getElementById('submit-btn');
+    const bodyDataset = document.body ? document.body.dataset : {};
+    const editingData = parseEditingData(bodyDataset ? bodyDataset.listingEditing : null);
 
     // Initialize form
     updateStepDisplay();
@@ -483,9 +485,9 @@ document.addEventListener('DOMContentLoaded', function() {
     loadSavedFormData();
 
     // Pre-fill form if editing
-    {% if editing_data %}
-    prefillEditForm({{ editing_data|tojson }});
-    {% endif %}
+    if (editingData) {
+        prefillEditForm(editingData);
+    }
 
     // Submit form via AJAX
     function submitFormAjax() {
@@ -628,6 +630,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 input.classList.add('has-value');
             }
         });
+    }
+
+    function parseEditingData(rawValue) {
+        if (!rawValue || rawValue === 'null') {
+            return null;
+        }
+        try {
+            return JSON.parse(rawValue);
+        } catch (error) {
+            console.error('Failed to parse editing data:', error);
+            return null;
+        }
     }
 });
 

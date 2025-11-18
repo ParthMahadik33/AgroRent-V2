@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             loadingState.style.display = 'block';
             listingsGrid.innerHTML = '';
-            emptyState.style.display = 'none';
+            toggleEmptyState(false);
 
             const response = await fetch('/api/listings');
             const listings = await response.json();
@@ -25,10 +25,11 @@ document.addEventListener('DOMContentLoaded', function() {
             allListings = listings;
 
             if (listings.length === 0) {
-                emptyState.style.display = 'block';
+                toggleEmptyState(true);
                 listingsGrid.innerHTML = '';
             } else {
                 displayListings(listings);
+                toggleEmptyState(false);
             }
         } catch (error) {
             console.error('Error loading listings:', error);
@@ -415,14 +416,46 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
-        // Filter functionality
-        document.getElementById('apply-filters').addEventListener('click', function() {
+        const searchInput = document.getElementById('search-filter');
+        const clearSearchBtn = document.getElementById('clear-search');
+        const categorySelect = document.getElementById('category-filter');
+        const locationInput = document.getElementById('location-filter');
+        const priceMinInput = document.getElementById('price-min');
+        const priceMaxInput = document.getElementById('price-max');
+        const sortSelect = document.getElementById('sort-order');
+        const applyBtn = document.getElementById('apply-filters');
+        const resetBtn = document.getElementById('clear-filters');
+
+        const debouncedFilter = debounce(applyFilters, 250);
+
+        applyBtn.addEventListener('click', applyFilters);
+        searchInput.addEventListener('input', debouncedFilter);
+        locationInput.addEventListener('input', debouncedFilter);
+        categorySelect.addEventListener('change', applyFilters);
+        sortSelect.addEventListener('change', applyFilters);
+        priceMinInput.addEventListener('input', debouncedFilter);
+        priceMaxInput.addEventListener('input', debouncedFilter);
+
+        clearSearchBtn.addEventListener('click', function() {
+            if (searchInput.value.trim() === '') return;
+            searchInput.value = '';
             applyFilters();
         });
 
-        // Enter key on location filter
-        document.getElementById('location-filter').addEventListener('keypress', function(e) {
+        resetBtn.addEventListener('click', function() {
+            resetFilters({
+                searchInput,
+                categorySelect,
+                locationInput,
+                priceMinInput,
+                priceMaxInput,
+                sortSelect
+            });
+        });
+
+        locationInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
+                e.preventDefault();
                 applyFilters();
             }
         });
@@ -431,31 +464,108 @@ document.addEventListener('DOMContentLoaded', function() {
     // Apply filters
     function applyFilters() {
         const categoryFilter = document.getElementById('category-filter').value.toLowerCase();
-        const locationFilter = document.getElementById('location-filter').value.toLowerCase();
+        const locationFilter = document.getElementById('location-filter').value.trim().toLowerCase();
+        const searchQuery = document.getElementById('search-filter').value.trim().toLowerCase();
+        const priceMin = parseInt(document.getElementById('price-min').value, 10);
+        const priceMax = parseInt(document.getElementById('price-max').value, 10);
+        const sortOption = document.getElementById('sort-order').value;
 
-        let filtered = allListings;
+        let filtered = [...allListings];
 
         if (categoryFilter) {
             filtered = filtered.filter(listing => 
-                listing.category.toLowerCase() === categoryFilter
+                listing.category && listing.category.toLowerCase() === categoryFilter
             );
         }
 
         if (locationFilter) {
-            filtered = filtered.filter(listing =>
-                listing.state.toLowerCase().includes(locationFilter) ||
-                listing.district.toLowerCase().includes(locationFilter) ||
-                listing.village_city.toLowerCase().includes(locationFilter)
-            );
+            filtered = filtered.filter(listing => {
+                const locations = [
+                    listing.state,
+                    listing.district,
+                    listing.village_city
+                ].filter(Boolean).map(loc => loc.toLowerCase());
+                return locations.some(loc => loc.includes(locationFilter));
+            });
         }
+
+        if (searchQuery) {
+            filtered = filtered.filter(listing => {
+                const searchableFields = [
+                    listing.title,
+                    listing.equipment_name,
+                    listing.brand,
+                    listing.description,
+                    listing.category
+                ];
+
+                return searchableFields.filter(Boolean).some(field =>
+                    field.toLowerCase().includes(searchQuery)
+                );
+            });
+        }
+
+        if (!isNaN(priceMin)) {
+            filtered = filtered.filter(listing => listing.price >= priceMin);
+        }
+
+        if (!isNaN(priceMax)) {
+            filtered = filtered.filter(listing => listing.price <= priceMax);
+        }
+
+        filtered = sortListings(filtered, sortOption);
 
         displayListings(filtered);
+        toggleEmptyState(filtered.length === 0);
+    }
 
-        if (filtered.length === 0) {
-            document.getElementById('empty-state').style.display = 'block';
-        } else {
-            document.getElementById('empty-state').style.display = 'none';
+    function sortListings(listings, sortOption) {
+        const sorted = [...listings];
+
+        switch (sortOption) {
+            case 'price-asc':
+                return sorted.sort((a, b) => a.price - b.price);
+            case 'price-desc':
+                return sorted.sort((a, b) => b.price - a.price);
+            case 'newest':
+                return sorted.sort((a, b) => getListingTimestamp(b) - getListingTimestamp(a));
+            default:
+                return sorted;
         }
+    }
+
+    function getListingTimestamp(listing) {
+        const candidates = [listing.created_at, listing.updated_at, listing.available_from];
+        for (const value of candidates) {
+            const timestamp = value ? new Date(value).getTime() : NaN;
+            if (!isNaN(timestamp)) {
+                return timestamp;
+            }
+        }
+        return 0;
+    }
+
+    function toggleEmptyState(showEmpty) {
+        const emptyState = document.getElementById('empty-state');
+        emptyState.style.display = showEmpty ? 'block' : 'none';
+    }
+
+    function resetFilters(elements) {
+        elements.searchInput.value = '';
+        elements.categorySelect.value = '';
+        elements.locationInput.value = '';
+        elements.priceMinInput.value = '';
+        elements.priceMaxInput.value = '';
+        elements.sortSelect.value = 'recommended';
+        applyFilters();
+    }
+
+    function debounce(fn, delay = 250) {
+        let timeoutId;
+        return function(...args) {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => fn.apply(this, args), delay);
+        };
     }
 });
 

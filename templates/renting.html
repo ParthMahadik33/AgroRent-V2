@@ -61,25 +61,60 @@
 
         <!-- Filters -->
         <div class="filters-section">
-            <div class="filter-group">
-                <label for="category-filter"><i class="fas fa-filter"></i> Category</label>
-                <select id="category-filter">
-                    <option value="">All Categories</option>
-                    <option value="Tractor">Tractor</option>
-                    <option value="Harvester">Harvester</option>
-                    <option value="Sprayer">Sprayer</option>
-                    <option value="Tiller">Tiller</option>
-                    <option value="Seed Drill">Seed Drill</option>
-                    <option value="Pump">Pump</option>
-                </select>
+            <div class="filters-row">
+                <div class="filter-group search-group">
+                    <label for="search-filter"><i class="fas fa-search"></i> Search listings</label>
+                    <div class="search-input-wrapper">
+                        <input type="text" id="search-filter" placeholder="Try “John Deere”, “sprayer”, “tractor with trailer”…">
+                        <button type="button" class="btn-clear-input" id="clear-search" aria-label="Clear search">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <label for="category-filter"><i class="fas fa-filter"></i> Category</label>
+                    <select id="category-filter">
+                        <option value="">All Categories</option>
+                        <option value="Tractor">Tractor</option>
+                        <option value="Harvester">Harvester</option>
+                        <option value="Sprayer">Sprayer</option>
+                        <option value="Tiller">Tiller</option>
+                        <option value="Seed Drill">Seed Drill</option>
+                        <option value="Pump">Pump</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="location-filter"><i class="fas fa-map-marker-alt"></i> Location</label>
+                    <input type="text" id="location-filter" placeholder="State, district, or city">
+                </div>
             </div>
-            <div class="filter-group">
-                <label for="location-filter"><i class="fas fa-map-marker-alt"></i> Location</label>
-                <input type="text" id="location-filter" placeholder="State, District, or City">
+            <div class="filters-row secondary-row">
+                <div class="filter-group price-group">
+                    <label><i class="fas fa-rupee-sign"></i> Price range</label>
+                    <div class="price-inputs">
+                        <input type="number" id="price-min" placeholder="Min">
+                        <span class="price-separator">to</span>
+                        <input type="number" id="price-max" placeholder="Max">
+                    </div>
+                </div>
+                <div class="filter-group sort-group">
+                    <label for="sort-order"><i class="fas fa-sort"></i> Sort by</label>
+                    <select id="sort-order">
+                        <option value="recommended">Recommended</option>
+                        <option value="price-asc">Price: Low to High</option>
+                        <option value="price-desc">Price: High to Low</option>
+                        <option value="newest">Newest Listings</option>
+                    </select>
+                </div>
+                <div class="filters-actions">
+                    <button class="btn-secondary" id="clear-filters" type="button">
+                        <i class="fas fa-redo-alt"></i> Reset
+                    </button>
+                    <button class="btn-filter" id="apply-filters" type="button">
+                        <i class="fas fa-search"></i> Apply
+                    </button>
+                </div>
             </div>
-            <button class="btn-filter" id="apply-filters">
-                <i class="fas fa-search"></i> Search
-            </button>
         </div>
 
         <!-- Loading State -->

@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/listing.css') }}">
 </head>
-<body>
+<body data-listing-is-editing="{% if editing_data is defined and editing_data %}true{% else %}false{% endif %}" data-listing-editing='{% if editing_data is defined and editing_data %}{{ editing_data|tojson }}{% else %}null{% endif %}'>
     <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="nav-container">
