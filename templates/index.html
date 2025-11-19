@@ -35,6 +35,10 @@
         </div>
         <div class="nav-right">
             {% if session.user_id %}
+            <div class="nav-shortcuts">
+                <a href="{{ url_for('mechanics_list') }}" class="nav-btn about-btn">Find Mechanic</a>
+                <a href="{{ url_for('mechanic_register') }}" class="nav-btn signup-btn">Register as Mechanic</a>
+            </div>
             <!-- Profile Dropdown for logged in users -->
             <div class="profile-dropdown">
                 <button class="profile-btn" id="profile-btn">
@@ -50,6 +54,10 @@
                     <a href="{{ url_for('listdashboard') }}" class="dropdown-item">
                         <i class="fas fa-list"></i>
                         <span>Listing Dashboard</span>
+                    </a>
+                    <a href="{{ url_for('mechanic_dashboard') }}" class="dropdown-item">
+                        <i class="fas fa-tools"></i>
+                        <span>Mechanic Dashboard</span>
                     </a>
                     <div class="dropdown-divider"></div>
                     <a href="{{ url_for('signout') }}" class="dropdown-item logout">

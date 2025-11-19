@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mechanic Dashboard | AgroRent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mechanics.css') }}">
+</head>
+<body>
+    <div class="page-wrapper">
+        <nav class="simple-nav">
+            <div class="nav-container">
+                <div class="nav-left">
+                    <a href="{{ url_for('index') }}">🌾 AgroRent</a>
+                </div>
+                <div class="nav-actions">
+                    <a class="nav-link-btn secondary" href="{{ url_for('mechanics_list') }}">Find Mechanics</a>
+                    <a class="nav-link-btn secondary" href="{{ url_for('mechanic_register') }}">Edit / Add Profile</a>
+                    <a class="nav-link-btn primary" href="{{ url_for('signout') }}">Sign Out</a>
+                </div>
+            </div>
+        </nav>
+
+        <section class="content-section">
+            <div class="page-header">
+                <h1>Mechanic Dashboard</h1>
+                <p>Manage your availability and keep track of farmer requests.</p>
+            </div>
+
+            {% if mechanic %}
+            <div class="card">
+                <div class="dash-toggle">
+                    <label class="availability-toggle" style="margin-top: 0;">
+                        <input type="checkbox" id="availabilityToggle" {% if mechanic['is_available'] %}checked{% endif %}>
+                        Available for calls
+                    </label>
+                    <span id="availabilityStatus">
+                        {% if mechanic['is_available'] %}Currently visible on listing{% else %}Hidden from listing{% endif %}
+                    </span>
+                </div>
+                <div>
+                    <strong>{{ mechanic['full_name'] }}</strong> · {{ mechanic['specialization'] }}
+                    {% if mechanic['experience_years'] %}
+                        · {{ mechanic['experience_years'] }} yrs exp
+                    {% endif %}
+                </div>
+                <p style="margin: 0.5rem 0 0;">Service areas: {{ mechanic['service_locations'] }}</p>
+                <p style="margin: 0.25rem 0 0;">Base visit charge: ₹{{ '{:,.0f}'.format(mechanic['base_charge']) }}</p>
+            </div>
+
+            <div class="requests-list">
+                {% if service_requests %}
+                    {% for req in service_requests %}
+                    <div class="request-card" data-request-id="{{ req['id'] }}">
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;">
+                            <div>
+                                <h4>{{ req['farmer_name'] }}</h4>
+                                <div class="request-meta">📞 {{ req['phone'] }}</div>
+                                <div class="request-meta">📍 {{ req['location'] }}</div>
+                            </div>
+                            <span class="status-pill {{ req['status'] }}">{{ req['status'] }}</span>
+                        </div>
+                        <p style="margin-top:0.5rem;">Issue: {{ req['issue_description'] }}</p>
+                        <div class="request-actions">
+                            {% if req['status'] != 'Accepted' %}
+                            <button class="ghost-btn request-status-btn" data-status="Accepted">Mark as Accepted</button>
+                            {% endif %}
+                            {% if req['status'] != 'Completed' %}
+                            <button class="solid-btn request-status-btn" data-status="Completed">Mark as Completed</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <h3>No requests yet.</h3>
+                        <p>Share your AgroRent profile with farmers so they can reach you.</p>
+                        <a href="{{ url_for('mechanics_list') }}">View listing</a>
+                    </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <h3>No mechanic profile found.</h3>
+                <p>Link your account by completing the registration form.</p>
+                <a href="{{ url_for('mechanic_register') }}">Register now</a>
+            </div>
+            {% endif %}
+        </section>
+    </div>
+
+    <script>
+        window.mechanicDashboard = {
+            hasProfile: {{ (mechanic is not none)|tojson }},
+            availabilityEndpoint: {{ url_for('update_mechanic_availability')|tojson }},
+            requestEndpointTemplate: {{ url_for('update_mechanic_request_status', request_id=0)|tojson }}
+        };
+    </script>
+    <script src="{{ url_for('static', filename='js/mechanics.js') }}"></script>
+</body>
+</html>
+

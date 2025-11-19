@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Agro-Doctors Near You | AgroRent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mechanics.css') }}">
+</head>
+<body>
+    <div class="page-wrapper">
+        <nav class="simple-nav">
+            <div class="nav-container">
+                <div class="nav-left">
+                    <a href="{{ url_for('index') }}">🌾 AgroRent</a>
+                </div>
+                <div class="nav-actions">
+                    <a class="nav-link-btn secondary" href="{{ url_for('mechanic_register') }}">Register as Mechanic</a>
+                    {% if session.user_id %}
+                    <a class="nav-link-btn secondary" href="{{ url_for('mechanic_dashboard') }}">Dashboard</a>
+                    <a class="nav-link-btn primary" href="{{ url_for('signout') }}">Sign Out</a>
+                    {% else %}
+                    <a class="nav-link-btn secondary" href="{{ url_for('signin') }}">Sign In</a>
+                    <a class="nav-link-btn primary" href="{{ url_for('signup') }}">Create Account</a>
+                    {% endif %}
+                </div>
+            </div>
+        </nav>
+
+        <section class="content-section">
+            <div class="page-header">
+                <h1>Mechanic Network</h1>
+                <p>Search trusted Agro-Doctors for tractors, harvesters, pumps, sprayers and more.</p>
+            </div>
+
+            <div class="card filters-card">
+                <form method="GET" action="{{ url_for('mechanics_list') }}">
+                    <div class="form-group">
+                        <label for="q">Location / pincode</label>
+                        <input type="text" id="q" name="q" placeholder="Eg: Baramati, 413102" value="{{ filters.search }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="specialization">Specialization</label>
+                        <select id="specialization" name="specialization">
+                            <option value="">All</option>
+                            {% for item in specializations %}
+                                <option value="{{ item }}" {% if filters.specialization == item %}selected{% endif %}>{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Availability</label>
+                        <label class="availability-toggle" style="margin-top: 0;">
+                            <input type="checkbox" name="available_only" {% if filters.available_only %}checked{% endif %} onchange="this.form.submit()">
+                            Available now
+                        </label>
+                    </div>
+                    <div>
+                        <button type="submit" class="btn-submit" style="width: 100%;">Apply Filters</button>
+                    </div>
+                </form>
+            </div>
+
+            {% if mechanics %}
+            <div class="mechanics-grid">
+                {% for mechanic in mechanics %}
+                <div class="card mechanic-card">
+                    <div class="badge {% if mechanic['is_available'] %}available{% else %}unavailable{% endif %}">
+                        {% if mechanic['is_available'] %}Available{% else %}Not Available{% endif %}
+                    </div>
+                    <h3>{{ mechanic['full_name'] }}</h3>
+                    <div class="mechanic-meta">
+                        <strong>{{ mechanic['specialization'] }}</strong>
+                        {% if mechanic['experience_years'] %}
+                        <span>{{ mechanic['experience_years'] }} years experience</span>
+                        {% endif %}
+                        <span>Service areas: {{ mechanic['service_locations'] }}</span>
+                        <span>Base visit: ₹{{ '{:,.0f}'.format(mechanic['base_charge']) }}</span>
+                    </div>
+                    <div class="card-actions">
+                        <button class="ghost-btn view-details-btn"
+                            data-name="{{ mechanic['full_name'] }}"
+                            data-specialization="{{ mechanic['specialization'] }}"
+                            data-location="{{ mechanic['service_locations'] }}"
+                            data-charge="₹{{ '{:,.0f}'.format(mechanic['base_charge']) }}"
+                            data-experience="{{ mechanic['experience_years'] or 'NA' }}"
+                            data-description="{{ mechanic['description'] or 'No bio shared yet.' }}">
+                            View Details
+                        </button>
+                        <button class="solid-btn request-service-btn"
+                            data-mechanic-id="{{ mechanic['id'] }}"
+                            data-mechanic-name="{{ mechanic['full_name'] }}">
+                            Request Service
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <h3>No mechanics match these filters yet.</h3>
+                <p>Try clearing the filters or invite your local Agro-Doctor to sign up.</p>
+                <a href="{{ url_for('mechanic_register') }}">Become an Agro-Doctor</a>
+            </div>
+            {% endif %}
+        </section>
+    </div>
+
+    <div class="modal" id="detailsModal">
+        <div class="modal-card">
+            <button class="modal-close" data-close>&times;</button>
+            <h2 id="detailsName"></h2>
+            <p id="detailsSpecialization"></p>
+            <p id="detailsExperience"></p>
+            <p id="detailsCharge"></p>
+            <p id="detailsLocations"></p>
+            <p id="detailsDescription"></p>
+        </div>
+    </div>
+
+    <div class="modal" id="requestModal">
+        <div class="modal-card">
+            <button class="modal-close" data-close>&times;</button>
+            <h2>Request Service</h2>
+            <p id="requestMechanicName" style="font-weight: 600;"></p>
+            <form id="requestForm">
+                <input type="hidden" id="requestMechanicId">
+                <div class="form-group">
+                    <label for="farmer_name">Your Name *</label>
+                    <input type="text" id="farmer_name" name="farmer_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="request_phone">Phone Number *</label>
+                    <input type="text" id="request_phone" name="phone" required>
+                </div>
+                <div class="form-group">
+                    <label for="request_location">Exact Location *</label>
+                    <textarea id="request_location" name="location" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="issue_description">Issue Description *</label>
+                    <textarea id="issue_description" name="issue_description" required></textarea>
+                </div>
+                <button type="submit" class="btn-submit" style="width: 100%;">Send Request</button>
+                <p id="requestFeedback" style="margin-top: 0.75rem;"></p>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/mechanics.js') }}"></script>
+</body>
+</html>
+

@@ -136,6 +136,12 @@ html, body {
     gap: 1rem;
 }
 
+.nav-shortcuts {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 /* Auth Buttons (Login/Signup) */
 .auth-buttons {
     display: flex;

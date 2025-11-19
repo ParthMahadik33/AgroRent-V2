@@ -19,6 +19,10 @@
             <ul class="nav-links">
                 <li><a href="{{ url_for('index') }}">Home</a></li>
                 <li><a href="{{ url_for('listing') }}">Browse Equipment</a></li>
+                {% if session.user_id %}
+                <li><a href="{{ url_for('mechanics_list') }}">Find Mechanic</a></li>
+                <li><a href="{{ url_for('mechanic_register') }}">Register as Mechanic</a></li>
+                {% endif %}
                 <li><a href="{{ url_for('about') }}" class="active">About</a></li>
             </ul>
             <div class="nav-actions">
