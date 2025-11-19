@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const openModal = (modal) => modal && modal.classList.add('active');
     const closeModal = (modal) => modal && modal.classList.remove('active');
+    const detailLabels = detailsModal ? detailsModal.dataset : {};
+    const requestsList = document.querySelector('.requests-list');
 
     document.querySelectorAll('[data-close]').forEach(btn => {
         btn.addEventListener('click', () => closeModal(btn.closest('.modal')));
@@ -24,23 +26,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('.view-details-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.getElementById('detailsName').textContent = btn.dataset.name;
-            document.getElementById('detailsSpecialization').textContent = `Specialization: ${btn.dataset.specialization}`;
-            document.getElementById('detailsExperience').textContent = btn.dataset.experience === 'NA'
-                ? 'Experience: info not provided'
-                : `Experience: ${btn.dataset.experience} years`;
-            document.getElementById('detailsCharge').textContent = `Base visit: ${btn.dataset.charge}`;
-            document.getElementById('detailsLocations').textContent = `Service areas: ${btn.dataset.location}`;
-            document.getElementById('detailsDescription').textContent = btn.dataset.description;
+            if (!detailsModal) return;
+            const nameEl = document.getElementById('detailsName');
+            const specializationEl = document.getElementById('detailsSpecialization');
+            const experienceEl = document.getElementById('detailsExperience');
+            const chargeEl = document.getElementById('detailsCharge');
+            const locationsEl = document.getElementById('detailsLocations');
+            const descriptionEl = document.getElementById('detailsDescription');
+
+            const specializationLabel = detailLabels.labelSpecialization || 'Specialization';
+            const experienceLabel = detailLabels.labelExperience || 'Experience';
+            const chargeLabel = detailLabels.labelCharge || 'Base visit';
+            const locationLabel = detailLabels.labelLocations || 'Service areas';
+
+            nameEl.textContent = btn.dataset.name;
+            specializationEl.textContent = `${specializationLabel}: ${btn.dataset.specialization}`;
+            const experienceText = btn.dataset.experienceText || detailLabels.labelExperienceMissing || '';
+            experienceEl.textContent = `${experienceLabel}: ${experienceText}`;
+            chargeEl.textContent = btn.dataset.chargeDisplay || `${chargeLabel}: ${btn.dataset.charge || ''}`;
+            locationsEl.textContent = btn.dataset.locationDisplay || `${locationLabel}: ${btn.dataset.location || ''}`;
+            descriptionEl.textContent = btn.dataset.description || '';
             openModal(detailsModal);
         });
     });
 
+    const mechanicNameLabel = document.getElementById('requestMechanicName');
     document.querySelectorAll('.request-service-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             if (!requestForm) return;
             requestForm.reset();
-            document.getElementById('requestMechanicName').textContent = btn.dataset.mechanicName;
+            if (mechanicNameLabel) {
+                const template = mechanicNameLabel.dataset.labelTemplate || '{name}';
+                mechanicNameLabel.textContent = template.replace('__NAME__', btn.dataset.mechanicName);
+            }
             document.getElementById('requestMechanicId').value = btn.dataset.mechanicId;
             if (requestFeedback) requestFeedback.textContent = '';
             openModal(requestModal);
@@ -51,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
         requestForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             if (requestFeedback) {
-                requestFeedback.textContent = 'Sending request...';
+                requestFeedback.textContent = requestForm.dataset.sendingText || 'Sending request...';
                 requestFeedback.style.color = '#1f2933';
             }
             const mechanicId = document.getElementById('requestMechanicId').value;
@@ -72,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (error) {
                 if (requestFeedback) {
-                    requestFeedback.textContent = 'Unable to send request at the moment.';
+                    requestFeedback.textContent = requestForm.dataset.errorText || 'Unable to send request at the moment.';
                     requestFeedback.style.color = '#b91c1c';
                 }
             }
@@ -84,7 +102,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (availabilityToggle && window.mechanicDashboard?.hasProfile) {
         availabilityToggle.addEventListener('change', async () => {
             const desiredState = availabilityToggle.checked;
-            availabilityStatus.textContent = 'Updating...';
+            const visibleLabel = availabilityStatus?.dataset.visibleLabel || 'Currently visible on listing';
+            const hiddenLabel = availabilityStatus?.dataset.hiddenLabel || 'Hidden from listing';
+            const updatingLabel = availabilityStatus?.dataset.updatingLabel || 'Updating...';
+            const errorLabel = availabilityStatus?.dataset.errorLabel || 'Update failed, please retry.';
+            availabilityStatus.textContent = updatingLabel;
             try {
                 const res = await fetch(window.mechanicDashboard.availabilityEndpoint, {
                     method: 'POST',
@@ -95,10 +117,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!data.success) {
                     throw new Error(data.message || 'Failed');
                 }
-                availabilityStatus.textContent = data.is_available ? 'Currently visible on listing' : 'Hidden from listing';
+                availabilityStatus.textContent = data.is_available ? visibleLabel : hiddenLabel;
             } catch (error) {
                 availabilityToggle.checked = !desiredState;
-                availabilityStatus.textContent = 'Update failed, please retry.';
+                availabilityStatus.textContent = errorLabel;
             }
         });
     }
@@ -112,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const statusPill = requestCard.querySelector('.status-pill');
             const endpoint = window.mechanicDashboard.requestEndpointTemplate.replace('/0/', `/${requestId}/`);
 
-            btn.textContent = 'Updating...';
+            btn.textContent = availabilityStatus?.dataset.updatingLabel || 'Updating...';
             btn.disabled = true;
             try {
                 const response = await fetch(endpoint, {
@@ -124,7 +146,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!data.success) {
                     throw new Error(data.message || 'Failed to update');
                 }
-                statusPill.textContent = data.status;
+                const localizedStatus = window.mechanicDashboard?.statusLabels?.[data.status] || data.status;
+                statusPill.textContent = localizedStatus;
                 statusPill.className = `status-pill ${data.status}`;
                 requestCard.querySelectorAll('.request-status-btn').forEach(actionBtn => {
                     if (data.status === 'Completed') {
@@ -132,12 +155,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (actionBtn.dataset.status === data.status) {
                         actionBtn.remove();
                     } else {
-                        actionBtn.textContent = data.status === 'Pending' ? 'Mark as Accepted' : 'Mark as Completed';
+                        const label = actionBtn.dataset.status === 'Accepted'
+                            ? requestsList?.dataset.acceptLabel
+                            : requestsList?.dataset.completeLabel;
+                        actionBtn.textContent = label || actionBtn.textContent;
                         actionBtn.disabled = false;
                     }
                 });
             } catch (error) {
-                btn.textContent = `Retry ${targetStatus}`;
+                const retryTemplate = requestsList?.dataset.retryLabel || 'Retry {status}';
+                const targetLabel = window.mechanicDashboard?.statusLabels?.[targetStatus] || targetStatus;
+                btn.textContent = retryTemplate.replace('__STATUS__', targetLabel).replace('{status}', targetLabel);
                 btn.disabled = false;
             }
         });

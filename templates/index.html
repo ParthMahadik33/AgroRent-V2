@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ current_locale }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AgroRent</title>
+    <title>{{ t('nav.brand') }}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
         <!-- Botpress Webchat: script + styles -->
@@ -30,14 +30,22 @@
         <div class="nav-logo">
             <a href="{{ url_for('index') }}">
                 <span class="logo-icon">🌾</span>
-                AgroRent
+                {{ t('nav.brand') }}
             </a>
         </div>
         <div class="nav-right">
+            <div class="language-switcher" aria-label="{{ t('language.change') }}">
+                {% for code in supported_languages %}
+                <a href="{{ url_for('set_language', lang_code=code) }}"
+                   class="language-pill {% if current_locale == code %}active{% endif %}">
+                    {{ language_names[code] }}
+                </a>
+                {% endfor %}
+            </div>
             {% if session.user_id %}
             <div class="nav-shortcuts">
-                <a href="{{ url_for('mechanics_list') }}" class="nav-btn about-btn">Find Mechanic</a>
-                <a href="{{ url_for('mechanic_register') }}" class="nav-btn signup-btn">Register as Mechanic</a>
+                <a href="{{ url_for('mechanics_list') }}" class="nav-btn about-btn">{{ t('nav.find_mechanic') }}</a>
+                <a href="{{ url_for('mechanic_register') }}" class="nav-btn signup-btn">{{ t('nav.register_mechanic') }}</a>
             </div>
             <!-- Profile Dropdown for logged in users -->
             <div class="profile-dropdown">
@@ -49,29 +57,29 @@
                 <div class="dropdown-menu" id="dropdown-menu">
                     <a href="{{ url_for('rentdashboard') }}" class="dropdown-item">
                         <i class="fas fa-tractor"></i>
-                        <span>Renting Dashboard</span>
+                        <span>{{ t('nav.rent_dashboard') }}</span>
                     </a>
                     <a href="{{ url_for('listdashboard') }}" class="dropdown-item">
                         <i class="fas fa-list"></i>
-                        <span>Listing Dashboard</span>
+                        <span>{{ t('nav.list_dashboard') }}</span>
                     </a>
                     <a href="{{ url_for('mechanic_dashboard') }}" class="dropdown-item">
                         <i class="fas fa-tools"></i>
-                        <span>Mechanic Dashboard</span>
+                        <span>{{ t('nav.mechanic_dashboard') }}</span>
                     </a>
                     <div class="dropdown-divider"></div>
                     <a href="{{ url_for('signout') }}" class="dropdown-item logout">
                         <i class="fas fa-sign-out-alt"></i>
-                        <span>Logout</span>
+                        <span>{{ t('nav.logout') }}</span>
                     </a>
                 </div>
             </div>
             {% else %}
             <!-- Auth buttons for non-logged in users -->
             <div class="auth-buttons">
-                <a href="{{ url_for('signin') }}" class="nav-btn login-btn">Sign In</a>
-                <a href="{{ url_for('signup') }}" class="nav-btn signup-btn">Sign Up</a>
-                <a href="{{ url_for('about') }}" class="nav-btn about-btn">About</a>
+                <a href="{{ url_for('signin') }}" class="nav-btn login-btn">{{ t('nav.sign_in') }}</a>
+                <a href="{{ url_for('signup') }}" class="nav-btn signup-btn">{{ t('nav.sign_up') }}</a>
+                <a href="{{ url_for('about') }}" class="nav-btn about-btn">{{ t('nav.about') }}</a>
             </div>
             {% endif %}
         </div>
@@ -82,7 +90,7 @@
         <div class="video-background">
             <!-- Placeholder video - in production, replace with actual video URL -->
             <video autoplay muted loop>
-                <source src="https://res.cloudinary.com/dbpo7d6dx/video/upload/v1763477922/Hero_page_video_y0wmue.mp4" type="video/mp4">
+                <source src="https://res.cloudinary.com/dbpo7d6dx/video/upload/v1763563059/Hero_page_video_1_1_1_jpqjtn.mp4" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
         </div>
@@ -90,14 +98,14 @@
         
         <div class="hero-content">
             <img src="/assets/hero text.png" alt="AgroRent Logo" class="logo">
-            <p class="hero-tagline">Rent Farm Machinery. Grow More, Spend Less.</p>
-            <p class="hero-subtext">Discover affordable tools near you.</p>
+            <p class="hero-tagline">{{ t('home.hero.tagline') }}</p>
+            <p class="hero-subtext">{{ t('home.hero.subtext') }}</p>
             <div class="cta-buttons">
                 {% if session.user_id %}
-                <a href="{{ url_for('listing') }}" class="cta-button cta-primary">Start Listing</a>
-                <a href="{{ url_for('renting') }}" class="cta-button cta-secondary">Start Renting</a>
+                <a href="{{ url_for('listing') }}" class="cta-button cta-primary">{{ t('home.hero.cta_primary') }}</a>
+                <a href="{{ url_for('renting') }}" class="cta-button cta-secondary">{{ t('home.hero.cta_renting') }}</a>
                 {% else %}
-                <a href="{{ url_for('signup') }}" class="cta-button cta-secondary">Get Started</a>
+                <a href="{{ url_for('signup') }}" class="cta-button cta-secondary">{{ t('home.hero.cta_secondary') }}</a>
                 {% endif %}
             </div>
         </div>

@@ -1,12 +1,98 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, jsonify, g
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_babel import Babel
 import sqlite3
 import os
 from functools import wraps
 from datetime import datetime, timedelta
+import json
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Secret key for session management
+
+SUPPORTED_LANGUAGES = ['en', 'hi', 'mr']
+LANGUAGE_NAMES = {
+    'en': 'English',
+    'hi': 'हिन्दी',
+    'mr': 'मराठी'
+}
+DEFAULT_LOCALE = 'en'
+
+
+def load_translations():
+    """Load translation dictionaries from i18n folder"""
+    translations = {}
+    for lang in SUPPORTED_LANGUAGES:
+        path = os.path.join('i18n', f'{lang}.json')
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                translations[lang] = json.load(f)
+        except FileNotFoundError:
+            translations[lang] = {}
+    return translations
+
+
+TRANSLATIONS = load_translations()
+
+
+def _get_translation_value(lang, key_parts):
+    """Traverse translation dict and return value for key parts"""
+    data = TRANSLATIONS.get(lang, {})
+    for part in key_parts:
+        if isinstance(data, dict):
+            data = data.get(part)
+        else:
+            data = None
+        if data is None:
+            break
+    if data is None and lang != DEFAULT_LOCALE:
+        return _get_translation_value(DEFAULT_LOCALE, key_parts)
+    return data
+
+
+def translate_text(key, locale=None, default=None, **kwargs):
+    """Translate the provided key for the active locale"""
+    if not key:
+        return ''
+    lang = locale or getattr(g, 'current_locale', None) or session.get('lang') or DEFAULT_LOCALE
+    parts = key.split('.')
+    value = _get_translation_value(lang, parts)
+    if value is None:
+        value = default if default is not None else _get_translation_value(DEFAULT_LOCALE, parts)
+    if value is None:
+        value = default if default is not None else key
+    if isinstance(value, str) and kwargs:
+        try:
+            value = value.format(**kwargs)
+        except KeyError:
+            pass
+    return value
+
+
+def select_locale():
+    """Determine active locale for each request"""
+    lang = session.get('lang')
+    if lang in SUPPORTED_LANGUAGES:
+        g.current_locale = lang
+        return lang
+    best_match = request.accept_languages.best_match(SUPPORTED_LANGUAGES)
+    selected = best_match or DEFAULT_LOCALE
+    g.current_locale = selected
+    return selected
+
+
+babel = Babel(app, locale_selector=select_locale)
+
+
+@app.context_processor
+def inject_translation_helpers():
+    """Expose translation helpers to templates"""
+    return {
+        't': translate_text,
+        'current_locale': getattr(g, 'current_locale', DEFAULT_LOCALE),
+        'supported_languages': SUPPORTED_LANGUAGES,
+        'language_names': LANGUAGE_NAMES
+    }
 
 MECHANIC_SPECIALIZATIONS = [
     'Tractor',
@@ -392,10 +478,26 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
-            flash('Please log in to access this page.', 'warning')
+            flash(translate_text('alerts.login_required'), 'warning')
             return redirect(url_for('signin'))
         return f(*args, **kwargs)
     return decorated_function
+
+
+@app.route('/set_language/<lang_code>')
+def set_language(lang_code):
+    """Update preferred language for the active session"""
+    next_url = request.referrer or url_for('index')
+    if lang_code in SUPPORTED_LANGUAGES:
+        session['lang'] = lang_code
+        g.current_locale = lang_code
+        flash(
+            translate_text('alerts.language_changed', locale=lang_code, language=LANGUAGE_NAMES[lang_code]),
+            'success'
+        )
+    else:
+        flash(translate_text('alerts.language_invalid'), 'warning')
+    return redirect(next_url)
 
 @app.route('/')
 def index():
@@ -418,16 +520,16 @@ def signup():
         
         # Validation
         if not name or not email or not password:
-            flash('Name, email, and password are required.', 'danger')
+            flash(translate_text('auth.signup.missing_fields'), 'danger')
             return render_template('signup.html')
         
         if len(password) < 6:
-            flash('Password must be at least 6 characters long.', 'danger')
+            flash(translate_text('auth.signup.short_password'), 'danger')
             return render_template('signup.html')
         
         # Basic email validation
         if '@' not in email or '.' not in email.split('@')[1]:
-            flash('Please enter a valid email address.', 'danger')
+            flash(translate_text('auth.signup.invalid_email'), 'danger')
             return render_template('signup.html')
         
         # Check if user already exists
@@ -438,7 +540,7 @@ def signup():
         
         if existing_user:
             conn.close()
-            flash('Email already registered. Please sign in instead.', 'danger')
+            flash(translate_text('auth.signup.email_exists'), 'danger')
             return render_template('signup.html')
         
         # Create new user
@@ -450,11 +552,11 @@ def signup():
             )
             conn.commit()
             conn.close()
-            flash('Account created successfully! Please sign in.', 'success')
+            flash(translate_text('auth.signup.success'), 'success')
             return redirect(url_for('signin'))
         except Exception as e:
             conn.close()
-            flash('An error occurred. Please try again.', 'danger')
+            flash(translate_text('alerts.generic_error'), 'danger')
             return render_template('signup.html')
     
     return render_template('signup.html')
@@ -468,7 +570,7 @@ def signin():
         
         # Validation
         if not email or not password:
-            flash('Please enter both email and password.', 'danger')
+            flash(translate_text('auth.signin.missing_fields'), 'danger')
             return render_template('signin.html')
         
         # Check user credentials
@@ -483,10 +585,10 @@ def signin():
             session['user_id'] = user['id']
             session['user_name'] = user['name']
             session['user_email'] = user['email']
-            flash(f'Welcome back, {user["name"]}!', 'success')
+            flash(translate_text('auth.signin.welcome', name=user['name']), 'success')
             return redirect(url_for('index'))
         else:
-            flash('Invalid email or password.', 'danger')
+            flash(translate_text('auth.signin.invalid_credentials'), 'danger')
             return render_template('signin.html')
     
     return render_template('signin.html')
@@ -495,7 +597,7 @@ def signin():
 def signout():
     """User logout"""
     session.clear()
-    flash('You have been signed out successfully.', 'success')
+    flash(translate_text('auth.signout.success'), 'success')
     return redirect(url_for('index'))
 
 @app.route('/rentdashboard')
@@ -586,7 +688,7 @@ def listing():
                 # Clear invalid session data
                 session.pop('editing_listing_data', None)
                 session.pop('editing_listing_id', None)
-                flash('You do not have permission to edit this listing.', 'danger')
+                flash(translate_text('listings.edit.forbidden'), 'danger')
     
     return render_template('listing.html', editing_data=editing_data, editing_id=editing_id)
 
@@ -982,7 +1084,7 @@ def edit_listing(listing_id):
     conn.close()
     
     if not listing:
-        flash('Listing not found or you do not have permission to edit it', 'danger')
+        flash(translate_text('listings.edit.not_found'), 'danger')
         return redirect(url_for('listdashboard'))
     
     # Store listing data in session for pre-filling form
@@ -1034,27 +1136,27 @@ def mechanic_register():
         errors = []
 
         if not full_name:
-            errors.append('Full name is required.')
+            errors.append(translate_text('mechanic.register.errors.full_name'))
         if not phone:
-            errors.append('Phone or WhatsApp number is required.')
+            errors.append(translate_text('mechanic.register.errors.phone'))
         if specialization not in MECHANIC_SPECIALIZATIONS:
-            errors.append('Please select a valid specialization.')
+            errors.append(translate_text('mechanic.register.errors.specialization'))
         if not service_locations:
-            errors.append('Serviceable locations are required.')
+            errors.append(translate_text('mechanic.register.errors.locations'))
         if not base_charge:
-            errors.append('Base visit charge is required.')
+            errors.append(translate_text('mechanic.register.errors.base_charge'))
 
         if base_charge:
             try:
                 float(base_charge)
             except ValueError:
-                errors.append('Base visit charge must be a number.')
+                errors.append(translate_text('mechanic.register.errors.base_charge_number'))
 
         if experience_years:
             try:
                 int(experience_years)
             except ValueError:
-                errors.append('Experience must be a whole number.')
+                errors.append(translate_text('mechanic.register.errors.experience_number'))
 
         if errors:
             for error in errors:
@@ -1087,12 +1189,12 @@ def mechanic_register():
             ))
             conn.commit()
             conn.close()
-            flash('Thanks for joining the Agro-Doctor network! Your profile is live.', 'success')
+            flash(translate_text('mechanic.register.success'), 'success')
             return redirect(url_for('mechanics_list'))
         except Exception as e:
             if conn:
                 conn.close()
-            flash('Unable to save your profile right now. Please try again.', 'danger')
+            flash(translate_text('mechanic.register.failure'), 'danger')
 
     return render_template(
         'mechanic_register.html',
@@ -1150,14 +1252,14 @@ def mechanic_service_request(mechanic_id):
     issue_description = request.form.get('issue_description', '').strip()
 
     if not farmer_name or not phone or not location or not issue_description:
-        return jsonify({'success': False, 'message': 'All fields are required.'}), 400
+        return jsonify({'success': False, 'message': translate_text('mechanic.requests.missing_fields')}), 400
 
     conn = get_db()
     try:
         mechanic = conn.execute('SELECT id FROM mechanics WHERE id = ?', (mechanic_id,)).fetchone()
 
         if not mechanic:
-            return jsonify({'success': False, 'message': 'Mechanic not found.'}), 404
+            return jsonify({'success': False, 'message': translate_text('mechanic.requests.not_found')}), 404
 
         conn.execute('''
             INSERT INTO mechanic_requests (mechanic_id, farmer_name, phone, location, issue_description)
@@ -1167,7 +1269,7 @@ def mechanic_service_request(mechanic_id):
     finally:
         conn.close()
 
-    return jsonify({'success': True, 'message': 'Service request sent to the mechanic.'}), 200
+    return jsonify({'success': True, 'message': translate_text('mechanic.requests.created')}), 200
 
 
 @app.route('/mechanic/dashboard')

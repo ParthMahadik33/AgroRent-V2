@@ -75,6 +75,32 @@ body {
     display: flex;
     align-items: center;
     gap: 16px;
+    flex-wrap: wrap;
+}
+
+.language-switcher {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.language-pill {
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(45, 80, 22, 0.2);
+    color: #2d5016;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.language-pill.active,
+.language-pill:hover {
+    background: #2d5016;
+    color: #ffffff;
+    border-color: #2d5016;
 }
 
 .nav-action-link {

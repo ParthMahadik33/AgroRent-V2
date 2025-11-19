@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ current_locale }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About AgroRent - Connecting Farmers with Equipment</title>
+    <title>{{ t('about.hero_title') }} | {{ t('nav.brand') }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/about.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,25 +14,33 @@
     <nav class="navbar">
         <div class="nav-container">
             <div class="logo">
-                <a href="{{ url_for('index') }}" class="logo-text">AgroRent</a>
+                <a href="{{ url_for('index') }}" class="logo-text">{{ t('nav.brand') }}</a>
             </div>
             <ul class="nav-links">
-                <li><a href="{{ url_for('index') }}">Home</a></li>
-                <li><a href="{{ url_for('listing') }}">Browse Equipment</a></li>
+                <li><a href="{{ url_for('index') }}">{{ t('nav.home') }}</a></li>
+                <li><a href="{{ url_for('listing') }}">{{ t('nav.browse_equipment') }}</a></li>
                 {% if session.user_id %}
-                <li><a href="{{ url_for('mechanics_list') }}">Find Mechanic</a></li>
-                <li><a href="{{ url_for('mechanic_register') }}">Register as Mechanic</a></li>
+                <li><a href="{{ url_for('mechanics_list') }}">{{ t('nav.find_mechanic') }}</a></li>
+                <li><a href="{{ url_for('mechanic_register') }}">{{ t('nav.register_mechanic') }}</a></li>
                 {% endif %}
-                <li><a href="{{ url_for('about') }}" class="active">About</a></li>
+                <li><a href="{{ url_for('about') }}" class="active">{{ t('nav.about') }}</a></li>
             </ul>
             <div class="nav-actions">
+                <div class="language-switcher" aria-label="{{ t('language.change') }}">
+                    {% for code in supported_languages %}
+                    <a href="{{ url_for('set_language', lang_code=code) }}"
+                       class="language-pill {% if current_locale == code %}active{% endif %}">
+                        {{ language_names[code] }}
+                    </a>
+                    {% endfor %}
+                </div>
                 {% if session.user_id %}
-                <a href="{{ url_for('rentdashboard') }}" class="nav-action-link">Rent Dashboard</a>
-                <a href="{{ url_for('listdashboard') }}" class="nav-action-link">List Dashboard</a>
-                <a href="{{ url_for('signout') }}" class="btn-get-started">Sign Out</a>
+                <a href="{{ url_for('rentdashboard') }}" class="nav-action-link">{{ t('nav.rent_dashboard') }}</a>
+                <a href="{{ url_for('listdashboard') }}" class="nav-action-link">{{ t('nav.list_dashboard') }}</a>
+                <a href="{{ url_for('signout') }}" class="btn-get-started">{{ t('nav.logout') }}</a>
                 {% else %}
-                <a href="{{ url_for('signin') }}" class="nav-action-link">Sign In</a>
-                <a href="{{ url_for('signup') }}" class="btn-get-started">Get Started</a>
+                <a href="{{ url_for('signin') }}" class="nav-action-link">{{ t('nav.sign_in') }}</a>
+                <a href="{{ url_for('signup') }}" class="btn-get-started">{{ t('home.hero.cta_secondary') }}</a>
                 {% endif %}
             </div>
         </div>
@@ -47,7 +55,7 @@
         </video>
         <div class="hero-overlay"></div>
         <div class="hero-content">
-            <h1 class="hero-title">About AgroRent</h1>
+            <h1 class="hero-title">{{ t('about.hero_title') }}</h1>
         </div>
     </section>
 
@@ -57,7 +65,7 @@
         <section class="intro-section">
             <div class="container">
                 <p class="intro-text">
-                    AgroRent is a location-based marketplace that connects farming equipment owners directly with small and mid-scale farmers who need to rent machinery. We're building a community that makes agriculture more accessible and sustainable.
+                    {{ t('about.intro') }}
                 </p>
             </div>
         </section>
@@ -75,9 +83,9 @@
                                 <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                         </div>
-                        <h3 class="benefit-title">For Farmers</h3>
+                        <h3 class="benefit-title">{{ t('about.farmers_title') }}</h3>
                         <p class="benefit-description">
-                            Get access to affordable equipment when you need it most. No large upfront investments—rent high-quality machinery for your specific farming needs.
+                            {{ t('about.farmers_body') }}
                         </p>
                     </div>
 
@@ -88,9 +96,9 @@
                                 <path d="M12 2V22M17 5H9.5C8.57174 5 7.6815 5.36875 7.02513 6.02513C6.36875 6.6815 6 7.57174 6 8.5C6 9.42826 6.36875 10.3185 7.02513 10.9749C7.6815 11.6313 8.57174 12 9.5 12H14.5C15.4283 12 16.3185 12.3687 16.9749 13.0251C17.6313 13.6815 18 14.5717 18 15.5C18 16.4283 17.6313 17.3185 16.9749 17.9749C16.3185 18.6313 15.4283 19 14.5 19H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                         </div>
-                        <h3 class="benefit-title">For Equipment Owners</h3>
+                        <h3 class="benefit-title">{{ t('about.owners_title') }}</h3>
                         <p class="benefit-description">
-                            Earn income from idle machinery. Turn your unused equipment into a revenue stream while helping fellow farmers grow their operations.
+                            {{ t('about.owners_body') }}
                         </p>
                     </div>
                 </div>
@@ -100,7 +108,7 @@
         <!-- Features Section -->
         <section class="features-section">
             <div class="container">
-                <h2 class="section-title">Why Choose AgroRent?</h2>
+                <h2 class="section-title">{{ t('about.reasons_title') }}</h2>
                 <div class="features-grid">
                     <div class="feature-item">
                         <div class="feature-icon">
@@ -108,8 +116,8 @@
                                 <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                         </div>
-                        <h4 class="feature-title">Transparent Pricing</h4>
-                        <p class="feature-text">Clear, upfront pricing with no hidden fees. Know exactly what you're paying before you book.</p>
+                        <h4 class="feature-title">{{ t('about.reason_pricing') }}</h4>
+                        <p class="feature-text">{{ t('about.reason_pricing_body') }}</p>
                     </div>
                     <div class="feature-item">
                         <div class="feature-icon">
@@ -117,8 +125,8 @@
                                 <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                         </div>
-                        <h4 class="feature-title">Verified Listings</h4>
-                        <p class="feature-text">All equipment is verified for quality and safety. Trust that you're renting reliable machinery.</p>
+                        <h4 class="feature-title">{{ t('about.reason_verified') }}</h4>
+                        <p class="feature-text">{{ t('about.reason_verified_body') }}</p>
                     </div>
                     <div class="feature-item">
                         <div class="feature-icon">
@@ -126,8 +134,8 @@
                                 <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                         </div>
-                        <h4 class="feature-title">Direct Booking</h4>
-                        <p class="feature-text">Connect directly with equipment owners. Simple, fast booking process with instant confirmations.</p>
+                        <h4 class="feature-title">{{ t('about.reason_booking') }}</h4>
+                        <p class="feature-text">{{ t('about.reason_booking_body') }}</p>
                     </div>
                 </div>
             </div>
@@ -138,9 +146,9 @@
             <div class="container">
                 <div class="illustration-content">
                     <div class="illustration-text">
-                        <h2 class="illustration-title">Easy Equipment Comparison</h2>
+                        <h2 class="illustration-title">{{ t('about.illustration_title') }}</h2>
                         <p class="illustration-description">
-                            Browse, compare, and book equipment right from your phone or laptop. Our intuitive platform makes finding the perfect machinery simple and fast.
+                            {{ t('about.illustration_body') }}
                         </p>
                     </div>
                     <div class="illustration-image">
@@ -175,7 +183,7 @@
     <!-- Footer -->
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2024 AgroRent. All rights reserved.</p>
+            <p>{{ t('about.footer') }}</p>
         </div>
     </footer>
 </body>
