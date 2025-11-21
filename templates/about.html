@@ -19,6 +19,7 @@
             <ul class="nav-links">
                 <li><a href="{{ url_for('index') }}">{{ t('nav.home') }}</a></li>
                 <li><a href="{{ url_for('listing') }}">{{ t('nav.browse_equipment') }}</a></li>
+                <li><a href="{{ url_for('market') }}">{{ t('nav.market') }}</a></li>
                 {% if session.user_id %}
                 <li><a href="{{ url_for('mechanics_list') }}">{{ t('nav.find_mechanic') }}</a></li>
                 <li><a href="{{ url_for('mechanic_register') }}">{{ t('nav.register_mechanic') }}</a></li>

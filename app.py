@@ -35,9 +35,17 @@ def load_translations():
 TRANSLATIONS = load_translations()
 
 
+def get_translations():
+    """Get translations, reloading in debug mode for development"""
+    if app.debug:
+        return load_translations()
+    return TRANSLATIONS
+
+
 def _get_translation_value(lang, key_parts):
     """Traverse translation dict and return value for key parts"""
-    data = TRANSLATIONS.get(lang, {})
+    translations = get_translations()
+    data = translations.get(lang, {})
     for part in key_parts:
         if isinstance(data, dict):
             data = data.get(part)
@@ -508,6 +516,12 @@ def index():
 def about():
     """About page"""
     return render_template('about.html')
+
+
+@app.route('/market')
+def market():
+    """Market overview page"""
+    return render_template('market.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
