@@ -181,6 +181,7 @@ def init_db():
             rules TEXT,
             main_image TEXT,
             additional_images TEXT,
+            status TEXT DEFAULT 'available',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
@@ -247,6 +248,18 @@ def init_db():
             conn.execute('ALTER TABLE users ADD COLUMN phone TEXT')
     except sqlite3.OperationalError:
         pass
+    
+    # Add status column to listings table if it doesn't exist (for existing databases)
+    try:
+        cursor = conn.execute("PRAGMA table_info(listings)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if 'status' not in columns:
+            conn.execute('ALTER TABLE listings ADD COLUMN status TEXT DEFAULT "available"')
+            # Update existing listings to have 'available' status
+            conn.execute('UPDATE listings SET status = "available" WHERE status IS NULL')
+    except sqlite3.OperationalError:
+        pass
+    
     conn.commit()
     conn.close()
 
@@ -882,9 +895,11 @@ def get_listings():
     conn = get_db()
     # Get all listings, including those available in the future
     # Filter out only those that have passed their available_till date
+    # Also filter out listings with status 'rented'
     listings = conn.execute('''
         SELECT * FROM listings 
         WHERE (available_till IS NULL OR available_till >= date('now'))
+        AND (status IS NULL OR status != 'rented')
         ORDER BY created_at DESC
     ''').fetchall()
     conn.close()
@@ -961,6 +976,19 @@ def rent_equipment():
                 'message': 'Listing not found'
             }), 404
         
+        # Check if equipment is already rented
+        try:
+            listing_status = listing['status']
+        except (KeyError, IndexError):
+            listing_status = None
+        
+        if listing_status == 'rented':
+            conn.close()
+            return jsonify({
+                'success': False,
+                'message': 'This equipment is already rented and not available'
+            }), 400
+        
         # Calculate total amount
         price = listing['price']
         pricing_type = listing['pricing_type']
@@ -987,6 +1015,11 @@ def rent_equipment():
             INSERT INTO rentals (user_id, listing_id, start_date, end_date, days, total_amount, status)
             VALUES (?, ?, ?, ?, ?, ?, 'Active')
         ''', (user_id, listing_id, start_date, end_date, days, total_amount))
+        
+        # Update listing status to 'rented'
+        conn.execute('''
+            UPDATE listings SET status = 'rented' WHERE id = ?
+        ''', (listing_id,))
         
         conn.commit()
         conn.close()
