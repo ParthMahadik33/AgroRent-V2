@@ -54,40 +54,81 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const imageUrl = rental.main_image ? `/static/${rental.main_image}` : '/assets/carousel1.jpg';
         
-        // Format dates
-        const startDate = new Date(rental.start_date).toLocaleDateString('en-US', {
+        // Format dates (parse without timezone conversion to avoid day shift)
+        const parseDate = (dateStr) => {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            return new Date(year, month - 1, day);
+        };
+        
+        const startDate = parseDate(rental.start_date).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
         });
         
-        const endDate = new Date(rental.end_date).toLocaleDateString('en-US', {
+        const endDate = parseDate(rental.end_date).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
         });
         
-        // Determine status and styling
+        // Determine status and styling based on rental status
         let statusClass = '';
-        let statusText = rental.status;
+        let statusText = rental.status_display || rental.status;
         let expiryClass = '';
         let expiryText = '';
         
-        if (rental.is_expired) {
-            statusClass = 'expired';
-            statusText = 'Expired';
-            expiryClass = 'expired';
-            expiryText = 'Expired';
-        } else if (rental.days_remaining <= 3) {
-            statusClass = 'expiring-soon';
-            statusText = 'Expiring Soon';
-            expiryClass = 'expiring-soon';
-            expiryText = `${rental.days_remaining} day${rental.days_remaining !== 1 ? 's' : ''} left`;
+        // Map status to display and styling
+        if (rental.status === 'Pending') {
+            statusClass = 'pending';
+            statusText = 'Waiting for approval';
+            expiryClass = 'pending';
+            expiryText = 'Waiting for owner approval';
+        } else if (rental.status === 'Approved') {
+            if (rental.is_expired) {
+                statusClass = 'expired';
+                statusText = 'Expired';
+                expiryClass = 'expired';
+                expiryText = 'Expired';
+            } else if (rental.days_remaining <= 3) {
+                statusClass = 'expiring-soon';
+                statusText = 'Approved';
+                expiryClass = 'expiring-soon';
+                expiryText = `${rental.days_remaining} day${rental.days_remaining !== 1 ? 's' : ''} left`;
+            } else {
+                statusClass = 'approved';
+                statusText = 'Approved';
+                expiryClass = 'active';
+                expiryText = `${rental.days_remaining} day${rental.days_remaining !== 1 ? 's' : ''} remaining`;
+            }
+        } else if (rental.status === 'Cancelled') {
+            statusClass = 'rejected';
+            statusText = 'Rejected';
+            expiryClass = 'rejected';
+            expiryText = 'Request was rejected';
+        } else if (rental.status === 'Active') {
+            if (rental.is_expired) {
+                statusClass = 'expired';
+                statusText = 'Expired';
+                expiryClass = 'expired';
+                expiryText = 'Expired';
+            } else if (rental.days_remaining <= 3) {
+                statusClass = 'expiring-soon';
+                statusText = 'Active';
+                expiryClass = 'expiring-soon';
+                expiryText = `${rental.days_remaining} day${rental.days_remaining !== 1 ? 's' : ''} left`;
+            } else {
+                statusClass = 'active';
+                statusText = 'Active';
+                expiryClass = 'active';
+                expiryText = `${rental.days_remaining} day${rental.days_remaining !== 1 ? 's' : ''} remaining`;
+            }
         } else {
+            // Fallback for other statuses
             statusClass = '';
-            statusText = 'Active';
-            expiryClass = 'active';
-            expiryText = `${rental.days_remaining} day${rental.days_remaining !== 1 ? 's' : ''} remaining`;
+            statusText = rental.status;
+            expiryClass = '';
+            expiryText = rental.status;
         }
         
         card.innerHTML = `
@@ -154,6 +195,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
             <div class="card-footer">
+                ${rental.status === 'Approved' || rental.status === 'Active' ? `
+                <button class="btn-download-contract" onclick="downloadContract(${rental.id})">
+                    <i class="fas fa-file-pdf"></i> Download Contract
+                </button>
+                ` : ''}
                 <a href="/renting" class="btn-view-listing">
                     <i class="fas fa-search"></i> Rent More Equipment
                 </a>
@@ -162,6 +208,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
         return card;
     }
+    
+    // Download contract
+    window.downloadContract = async function(rentalId) {
+        try {
+            const response = await fetch(`/api/rentals/${rentalId}/generate-contract`, {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Rental_Agreement_${rentalId}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } else {
+                const data = await response.json();
+                alert('Error: ' + (data.message || 'Failed to download contract'));
+            }
+        } catch (error) {
+            console.error('Error downloading contract:', error);
+            alert('An error occurred while downloading the contract. Please try again.');
+        }
+    };
 });
 
 

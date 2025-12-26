@@ -119,6 +119,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
             <div class="card-footer">
+                <button class="btn-view-requests" onclick="viewRentalRequests(${listing.id})">
+                    <i class="fas fa-calendar-check"></i> View Requests
+                </button>
                 <button class="btn-edit" onclick="editListing(${listing.id})">
                     <i class="fas fa-edit"></i> Edit
                 </button>
@@ -206,6 +209,214 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // View rental requests
+    window.viewRentalRequests = async function(listingId) {
+        try {
+            const response = await fetch(`/api/listings/${listingId}/rental-requests`);
+            const requests = await response.json();
+            
+            showRentalRequestsModal(listingId, requests);
+        } catch (error) {
+            console.error('Error loading rental requests:', error);
+            alert('Error loading rental requests. Please try again.');
+        }
+    };
+
+    // Show rental requests modal
+    function showRentalRequestsModal(listingId, requests) {
+        const modal = document.createElement('div');
+        modal.className = 'rental-requests-modal show';
+        modal.innerHTML = `
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <button class="modal-close" onclick="this.closest('.rental-requests-modal').remove(); document.body.style.overflow = 'visible';">
+                    <i class="fas fa-times"></i>
+                </button>
+                <h2><i class="fas fa-calendar-check"></i> Rental Requests</h2>
+                <div class="rental-requests-list" id="rental-requests-list-${listingId}">
+                    ${requests.length === 0 ? '<p style="text-align: center; padding: 2rem; color: #7a8c6a;">No rental requests yet.</p>' : ''}
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
+        
+        // Render requests
+        const requestsList = document.getElementById(`rental-requests-list-${listingId}`);
+        if (requestsList && requests.length > 0) {
+            requests.forEach(request => {
+                const requestCard = createRequestCard(listingId, request);
+                requestsList.appendChild(requestCard);
+            });
+        }
+        
+        // Close on overlay click
+        modal.querySelector('.modal-overlay').addEventListener('click', function() {
+            modal.remove();
+            document.body.style.overflow = 'visible';
+        });
+    };
+
+    // Create request card
+    function createRequestCard(listingId, request) {
+        const card = document.createElement('div');
+        card.className = 'rental-request-card';
+        
+        const statusClass = request.status.toLowerCase();
+        
+        // Parse dates without timezone conversion to avoid day shift
+        const parseDate = (dateStr) => {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            return new Date(year, month - 1, day);
+        };
+        
+        const startDate = parseDate(request.start_date).toLocaleDateString();
+        const endDate = parseDate(request.end_date).toLocaleDateString();
+        const createdDate = new Date(request.created_at).toLocaleDateString();
+        
+        let actionButtons = '';
+        if (request.status === 'Pending') {
+            actionButtons = `
+                <div class="request-actions">
+                    <button class="btn-approve" onclick="approveRental(${request.id}, ${listingId})">
+                        <i class="fas fa-check"></i> Approve
+                    </button>
+                    <button class="btn-reject" onclick="rejectRental(${request.id}, ${listingId})">
+                        <i class="fas fa-times"></i> Reject
+                    </button>
+                </div>
+            `;
+        } else if (request.status === 'Approved' || request.status === 'Active') {
+            actionButtons = `
+                <div class="request-actions">
+                    <button class="btn-download-contract" onclick="downloadContract(${request.id})">
+                        <i class="fas fa-file-pdf"></i> Download Contract
+                    </button>
+                </div>
+            `;
+        }
+        
+        card.innerHTML = `
+            <div class="request-header">
+                <div>
+                    <h4>${request.renter_name}</h4>
+                    <div class="request-meta">
+                        <i class="fas fa-phone"></i> ${request.renter_phone}
+                        ${request.renter_email ? ` | <i class="fas fa-envelope"></i> ${request.renter_email}` : ''}
+                    </div>
+                </div>
+                <span class="status-badge status-${statusClass}">${request.status}</span>
+            </div>
+            <div class="request-details">
+                <div class="request-detail">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span><strong>Dates:</strong> ${startDate} to ${endDate}</span>
+                </div>
+                <div class="request-detail">
+                    <i class="fas fa-clock"></i>
+                    <span><strong>Duration:</strong> ${request.days} day${request.days !== 1 ? 's' : ''}</span>
+                </div>
+                <div class="request-detail">
+                    <i class="fas fa-rupee-sign"></i>
+                    <span><strong>Total Amount:</strong> ₹${request.total_amount.toLocaleString()}</span>
+                </div>
+                <div class="request-detail">
+                    <i class="fas fa-calendar"></i>
+                    <span><strong>Requested:</strong> ${createdDate}</span>
+                </div>
+            </div>
+            ${actionButtons}
+        `;
+        
+        return card;
+    };
+
+    // Approve rental
+    window.approveRental = async function(rentalId, listingId) {
+        if (!confirm('Are you sure you want to approve this rental request? This will lock the dates and cancel any conflicting pending requests.')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/rentals/${rentalId}/approve`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showNotification('Rental request approved successfully', 'success');
+                // Reload requests
+                viewRentalRequests(listingId);
+            } else {
+                alert('Error: ' + (data.message || 'Failed to approve request'));
+            }
+        } catch (error) {
+            console.error('Error approving rental:', error);
+            alert('An error occurred. Please try again.');
+        }
+    };
+
+    // Reject rental
+    window.rejectRental = async function(rentalId, listingId) {
+        if (!confirm('Are you sure you want to reject this rental request?')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/rentals/${rentalId}/reject`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showNotification('Rental request rejected', 'success');
+                // Reload requests
+                viewRentalRequests(listingId);
+            } else {
+                alert('Error: ' + (data.message || 'Failed to reject request'));
+            }
+        } catch (error) {
+            console.error('Error rejecting rental:', error);
+            alert('An error occurred. Please try again.');
+        }
+    };
+
+    // Download contract
+    window.downloadContract = async function(rentalId) {
+        try {
+            const response = await fetch(`/api/rentals/${rentalId}/generate-contract`, {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Rental_Agreement_${rentalId}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } else {
+                const data = await response.json();
+                alert('Error: ' + (data.message || 'Failed to download contract'));
+            }
+        } catch (error) {
+            console.error('Error downloading contract:', error);
+            alert('An error occurred while downloading the contract. Please try again.');
+        }
+    };
 
     // Show notification
     function showNotification(message, type = 'success') {
