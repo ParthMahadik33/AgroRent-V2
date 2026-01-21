@@ -314,3 +314,37 @@
     background: #999;
 }
 
+/* Chatbot link styling */
+.chatbot-link {
+    color: #28ad4b;
+    text-decoration: underline;
+    text-decoration-color: rgba(40, 173, 75, 0.3);
+    transition: all 0.2s ease;
+    word-break: break-all;
+}
+
+.chatbot-link:hover {
+    color: #1e8e3e;
+    text-decoration-color: #1e8e3e;
+    text-decoration-thickness: 2px;
+}
+
+.bot-message .chatbot-link {
+    color: #28ad4b;
+}
+
+.bot-message .chatbot-link:hover {
+    color: #1e8e3e;
+}
+
+.user-message .chatbot-link {
+    color: rgba(255, 255, 255, 0.95);
+    text-decoration-color: rgba(255, 255, 255, 0.5);
+}
+
+.user-message .chatbot-link:hover {
+    color: white;
+    text-decoration-color: white;
+    text-decoration-thickness: 2px;
+}
+

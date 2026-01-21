@@ -166,12 +166,63 @@ class Chatbot {
     }
 
     formatMessage(text) {
-        // Escape HTML and convert newlines to <br>
-        return text
+        // Use a placeholder to protect links during HTML escaping
+        const linkPlaceholders = [];
+        let placeholderIndex = 0;
+        
+        // Convert markdown-style links [text](url) to HTML links
+        let formatted = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
+            const placeholder = `__LINK_PLACEHOLDER_${placeholderIndex}__`;
+            linkPlaceholders.push({
+                placeholder: placeholder,
+                html: `<a href="${this.escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="chatbot-link">${this.escapeHtml(linkText)}</a>`
+            });
+            placeholderIndex++;
+            return placeholder;
+        });
+        
+        // Convert plain URLs to clickable links (http://, https://, www.)
+        formatted = formatted.replace(/(https?:\/\/[^\s<>"']+|www\.[^\s<>"']+)/g, (url) => {
+            // Skip if this is already a placeholder
+            if (url.includes('__LINK_PLACEHOLDER__')) {
+                return url;
+            }
+            
+            let href = url;
+            // Add https:// if it starts with www.
+            if (url.startsWith('www.')) {
+                href = 'https://' + url;
+            }
+            const placeholder = `__LINK_PLACEHOLDER_${placeholderIndex}__`;
+            linkPlaceholders.push({
+                placeholder: placeholder,
+                html: `<a href="${this.escapeHtml(href)}" target="_blank" rel="noopener noreferrer" class="chatbot-link">${this.escapeHtml(url)}</a>`
+            });
+            placeholderIndex++;
+            return placeholder;
+        });
+        
+        // Escape HTML (but preserve placeholders)
+        formatted = formatted
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/\n/g, '<br>');
+            .replace(/>/g, '&gt;');
+        
+        // Restore links from placeholders
+        linkPlaceholders.forEach(item => {
+            formatted = formatted.replace(item.placeholder, item.html);
+        });
+        
+        // Convert newlines to <br>
+        formatted = formatted.replace(/\n/g, '<br>');
+        
+        return formatted;
+    }
+    
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }
 

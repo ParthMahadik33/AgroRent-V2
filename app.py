@@ -2274,9 +2274,18 @@ def get_heatmap_locations():
     return jsonify(result)
 
 
-# Chatbot configuration
-API_KEY = "AIzaSyCGYenagLMP4D7n0PFxap4lE5MPT0BoJWg"
+# ============================================
+# CONFIGURATION: Set your Gemini API key here
+# ============================================
+GEMINI_API_KEY = "AIzaSyDHpTcJAYkrxQWh6bY0kvhYzuhsQDUCtf4"  # Replace with your actual API key
 
+# Set the API key in environment (client reads from GEMINI_API_KEY env var)
+os.environ['GEMINI_API_KEY'] = GEMINI_API_KEY
+
+# Initialize the Gemini client
+client = genai.Client()
+
+# System prompt for AgroRent chatbot
 PLATFORM_DATA = """
 AgroRent Platform Information:
 
@@ -2321,20 +2330,7 @@ Benefits:
 - Trained operators available on request
 """
 
-client = genai.Client(api_key=API_KEY)
-
-
-@app.route('/chat', methods=['POST'])
-def chat():
-    try:
-        data = request.json
-        user_message = data.get('message', '')
-        
-        if not user_message:
-            return jsonify({'error': 'No message provided'}), 400
-        
-        # Create system prompt with platform data
-        system_prompt = f"""You are a helpful customer support chatbot for AgroRent, an agricultural equipment rental platform.
+AGRORENT_SYSTEM_PROMPT = f"""You are a helpful assistant for AgroRent, an agricultural equipment rental platform.
 
 {PLATFORM_DATA}
 
@@ -2346,23 +2342,48 @@ Instructions:
 - Keep responses brief (2-3 sentences) unless detailed information is requested
 - Use a warm, professional tone suitable for farmers
 - If someone wants to book, guide them through the process
-- If someone wants to rent equipment, guide them through the process and provide links from platform data clickable if possible
-"""
+- If someone wants to rent equipment, guide them through the process and provide links from platform data
+- IMPORTANT: When providing links, include the full URL (e.g., https://agrorent-r3i4.onrender.com/renting) so they become clickable. You can use markdown format [link text](url) or just include the URL directly."""
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    """Handle chat messages from the frontend"""
+    try:
+        data = request.json
+        user_message = data.get('message', '')
+        
+        if not user_message:
+            return jsonify({'error': 'No message provided'}), 400
+        
+        # Combine system prompt with user message
+        full_prompt = f"{AGRORENT_SYSTEM_PROMPT}\n\nUser: {user_message}\nAssistant:"
         
         # Generate response using Gemini
         response = client.models.generate_content(
-            model="gemini-3-flash-preview",
-            contents=f"{system_prompt}\n\nUser: {user_message}\n\nAssistant:"
+            model="gemini-2.5-flash",
+            contents=full_prompt
         )
         
-        bot_response = response.text
+        # Extract the response text
+        bot_response = response.text if hasattr(response, 'text') else str(response)
         
-        return jsonify({'response': bot_response})
+        return jsonify({
+            'response': bot_response,
+            'status': 'success'
+        })
     
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'error': f'An error occurred: {str(e)}',
+            'status': 'error'
+        }), 500
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0',debug=True)
+    # Check if API key is set
+    if GEMINI_API_KEY == "your-api-key-here" or not GEMINI_API_KEY:
+        print("Warning: Please set your GEMINI_API_KEY in the code!")
+        print("Edit app.py and replace 'your-api-key-here' with your actual API key.")
+    
+    app.run(debug=True, host='0.0.0.0', port=5000)
 
