@@ -245,10 +245,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
                 
                 <div class="modal-ai-section">
-                    <h3><i class="fas fa-robot"></i> AI Condition Detection</h3>
+                    <h3><i class="fas fa-robot"></i> AI Condition Analysis</h3>
                     <div id="ai-analysis-container-${listing.id}" class="ai-analysis-container">
                         <button class="btn-ai-analyze" onclick="analyzeCondition('${mainImageUrl}', ${listing.id})">
-                            <i class="fas fa-magic"></i> Analyze Equipment Condition
+                            <i class="fas fa-search"></i> Check Condition Score
                         </button>
                     </div>
                 </div>
@@ -1459,116 +1459,94 @@ window.analyzeCondition = async function (imageUrl, listingId) {
     const container = document.getElementById(`ai-analysis-container-${listingId}`);
     if (!container) return;
 
-    // Helper function to call API
-    async function callGeminiAPI(model, content) {
-        const API_KEY = 'AIzaSyBELK4qovpgktyPwz5sTM-iH-XCZbVPg-c';
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(content)
-        });
-        if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.error?.message || `API request failed for ${model}`);
-        }
-        return response.json();
-    }
-
     // Show loading state
     container.innerHTML = `
         <div class="ai-loading">
             <i class="fas fa-spinner fa-spin"></i>
-            <span>Analyzing image with Gemini 3 Flash Preview AI...</span>
+            <span>Analyzing equipment condition...</span>
         </div>
     `;
 
     try {
-        const fullImageUrl = imageUrl.startsWith('http') ? imageUrl : window.location.origin + imageUrl;
-
-        let imageContent = '';
-        try {
-            const imgResponse = await fetch(imageUrl);
-            const blob = await imgResponse.blob();
-            imageContent = await new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                reader.readAsDataURL(blob);
-            });
-        } catch (e) {
-            console.error("Error fetching local image:", e);
-            throw new Error("Could not access image for analysis.");
-        }
-
-        const requestBody = {
-            contents: [{
-                parts: [
-                    {
-                        text: "Analyze this agricultural machinery image. Provide a precise maintenance condition score (0-100) based on visible rust, tire wear, paint fade, and structural integrity. Be strict. Also provide a short, specific 1-sentence review mentioning exactly what you see (e.g. 'faded paint on hood', 'worn rear tires'). Return ONLY valid JSON format: { \"score\": number, \"review\": \"string\" }."
-                    },
-                    {
-                        inlineData: {
-                            mimeType: "image/jpeg",
-                            data: imageContent
-                        }
-                    }
-                ]
-            }],
-            generationConfig: {
-                responseMimeType: "application/json"
+        // Call backend API
+        const response = await fetch(`/api/analyze-condition/${listingId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
             }
-        };
+        });
 
-        // Try Primary Model: Gemini 3 Flash Preview
-        let data;
-        let modelUsed = "Gemini 3 Flash Preview";
-
-        try {
-            console.log("Attempting Gemini 3 Flash Preview...");
-            data = await callGeminiAPI("gemini-3-flash-preview", requestBody);
-        } catch (primaryError) {
-            console.warn("Gemini 3 failed, falling back to Gemini 1.5 Flash:", primaryError);
-            // Fallback: Gemini 1.5 Flash
-            modelUsed = "Gemini 1.5 Flash (Fallback)";
-            container.querySelector('.ai-loading span').innerText = "Switching to Gemini 1.5 Flash (Fallback)...";
-            data = await callGeminiAPI("gemini-1.5-flash-001", requestBody);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+            throw new Error(errorData.error || `HTTP ${response.status}`);
         }
 
-        console.log("Gemini API Response:", data);
+        const result = await response.json();
 
-        if (!data.candidates || data.candidates.length === 0) {
-            let errorMsg = "No analysis generated.";
-            if (data.promptFeedback && data.promptFeedback.blockReason) {
-                errorMsg = `Analysis blocked: ${data.promptFeedback.blockReason}`;
-            }
-            throw new Error(errorMsg);
+        // Extract data
+        const score = result.condition_score;
+        const issues = result.issues_found || [];
+        const summary = result.summary || 'Analysis completed';
+        const recommendation = result.recommendation || 'Review equipment before renting';
+
+        // Determine score color (0-10 scale)
+        let scoreColor;
+        let scoreLabel;
+        if (score === null || score === undefined) {
+            scoreColor = '#999';
+            scoreLabel = 'N/A';
+        } else if (score >= 9) {
+            scoreColor = '#4CAF50'; // Green - Excellent
+            scoreLabel = 'Excellent';
+        } else if (score >= 7) {
+            scoreColor = '#8BC34A'; // Light Green - Good
+            scoreLabel = 'Good';
+        } else if (score >= 5) {
+            scoreColor = '#FFC107'; // Yellow - Moderate
+            scoreLabel = 'Moderate';
+        } else if (score >= 3) {
+            scoreColor = '#FF9800'; // Orange - Poor
+            scoreLabel = 'Poor';
+        } else {
+            scoreColor = '#F44336'; // Red - Very Bad
+            scoreLabel = 'Very Poor';
         }
 
-        const textResponse = data.candidates[0].content.parts[0].text;
-        const result = JSON.parse(textResponse);
-
-        const score = result.score;
-        const analysisText = result.review;
+        // Calculate percentage for display (0-10 scale to 0-100%)
+        const scorePercent = score !== null && score !== undefined ? (score / 10) * 100 : 0;
 
         // Render Result
-        const scoreColor = score >= 85 ? '#4CAF50' : (score >= 70 ? '#8BC34A' : (score >= 50 ? '#FFC107' : '#F44336'));
-
         container.innerHTML = `
             <div class="ai-result" style="border-left: 4px solid ${scoreColor}; background: #f9f9f9; padding: 1rem; border-radius: 8px; margin-top: 10px;">
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <div style="position: relative; width: 60px; height: 60px;">
+                <div style="display: flex; align-items: flex-start; gap: 15px; margin-bottom: 12px;">
+                    <div style="position: relative; width: 70px; height: 70px; flex-shrink: 0;">
                         <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-90deg);">
                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#eee" stroke-width="3" />
-                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="${scoreColor}" stroke-width="3" stroke-dasharray="${score}, 100" />
+                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="${scoreColor}" stroke-width="3" stroke-dasharray="${scorePercent}, 100" />
                         </svg>
-                        <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 14px; color: ${scoreColor};">${score}</span>
+                        <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 16px; color: ${scoreColor};">${score !== null && score !== undefined ? score.toFixed(1) : 'N/A'}</span>
                     </div>
-                    <div>
-                        <h4 style="margin: 0 0 5px 0; color: #333;">Gemini AI Assessment</h4>
-                        <p style="margin: 0; font-size: 0.9rem; color: #555;">${analysisText}</p>
+                    <div style="flex: 1;">
+                        <h4 style="margin: 0 0 8px 0; color: #333; font-size: 16px;">
+                            <i class="fas fa-robot" style="color: ${scoreColor};"></i> Condition Score: ${scoreLabel}
+                        </h4>
+                        ${issues.length > 0 ? `
+                        <div style="margin-bottom: 8px;">
+                            <strong style="font-size: 13px; color: #666;">Issues Found:</strong>
+                            <ul style="margin: 4px 0 0 0; padding-left: 20px; font-size: 12px; color: #555;">
+                                ${issues.slice(0, 5).map(issue => `<li>${escapeHtml(issue)}</li>`).join('')}
+                            </ul>
+                        </div>
+                        ` : ''}
+                        <div style="margin-bottom: 6px;">
+                            <strong style="font-size: 13px; color: #666;">Summary:</strong>
+                            <p style="margin: 4px 0 0 0; font-size: 12px; color: #555; line-height: 1.4;">${escapeHtml(summary)}</p>
+                        </div>
+                        <div>
+                            <strong style="font-size: 13px; color: #666;">Suggestion:</strong>
+                            <p style="margin: 4px 0 0 0; font-size: 12px; color: #555; line-height: 1.4;">${escapeHtml(recommendation)}</p>
+                        </div>
                     </div>
-                </div>
-                <div style="margin-top: 10px; font-size: 0.75rem; color: #999; text-align: right;">
-                    Analysis by Google ${modelUsed}
                 </div>
             </div>
         `;
@@ -1580,7 +1558,7 @@ window.analyzeCondition = async function (imageUrl, listingId) {
                 <i class="fas fa-exclamation-triangle"></i>
                 <span>Analysis failed: ${error.message}</span>
                 <div style="margin-top: 5px;">
-                    <button style="border: none; background: transparent; color: #d32f2f; text-decoration: underline; cursor: pointer;" onclick="analyzeCondition('${imageUrl}', ${listingId})">Retry</button>
+                    <button style="border: none; background: transparent; color: #d32f2f; text-decoration: underline; cursor: pointer; font-size: 12px;" onclick="analyzeCondition('${imageUrl}', ${listingId})">Retry</button>
                 </div>
             </div>
         `;
