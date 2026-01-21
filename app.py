@@ -2277,13 +2277,14 @@ def get_heatmap_locations():
 # ============================================
 # CONFIGURATION: Set your Gemini API key here
 # ============================================
-GEMINI_API_KEY = "AIzaSyDHpTcJAYkrxQWh6bY0kvhYzuhsQDUCtf4"  # Replace with your actual API key
+# Check for API key in environment variable first (for production), otherwise use hardcoded value
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', "AIzaSyDHpTcJAYkrxQWh6bY0kvhYzuhsQDUCtf4")
 
-# Set the API key in environment (client reads from GEMINI_API_KEY env var)
+# Set the API key in environment (for compatibility)
 os.environ['GEMINI_API_KEY'] = GEMINI_API_KEY
 
-# Initialize the Gemini client
-client = genai.Client()
+# Initialize the Gemini client with API key
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 # System prompt for AgroRent chatbot
 PLATFORM_DATA = """
