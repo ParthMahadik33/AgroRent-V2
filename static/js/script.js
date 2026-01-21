@@ -1,5 +1,5 @@
 // DOM Content Loaded Event
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     initSmoothScrolling();
     initScrollAnimations();
     initVideoHandling();
@@ -27,31 +27,62 @@ function initSmoothScrolling() {
     });
 }
 
-// Profile Dropdown functionality
+// Dropdown functionality
 function initProfileDropdown() {
-    const profileBtn = document.getElementById('profile-btn');
-    const dropdownMenu = document.getElementById('dropdown-menu');
-    
-    if (!profileBtn || !dropdownMenu) return;
+    // Defines dropdown configuration: {btnId, menuId}
+    const dropdowns = [
+        { btnId: 'profile-btn', menuId: 'dropdown-menu' },
+        { btnId: 'language-btn', menuId: 'language-menu' },
+        { btnId: 'mechanic-btn', menuId: 'mechanic-menu' }
+    ];
 
-    // Toggle dropdown on button click
-    profileBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        dropdownMenu.classList.toggle('active');
-        profileBtn.classList.toggle('active');
-    });
+    // Initialize each dropdown
+    dropdowns.forEach(config => {
+        const btn = document.getElementById(config.btnId);
+        const menu = document.getElementById(config.menuId);
 
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!profileBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
-            dropdownMenu.classList.remove('active');
-            profileBtn.classList.remove('active');
+        if (btn && menu) {
+            // Toggle on click
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+
+                // Toggle current
+                const isOpening = !menu.classList.contains('active');
+                menu.classList.toggle('active');
+                btn.classList.toggle('active');
+
+                // Close all others if opening
+                if (isOpening) {
+                    dropdowns.forEach(other => {
+                        if (other.btnId !== config.btnId) {
+                            const otherBtn = document.getElementById(other.btnId);
+                            const otherMenu = document.getElementById(other.menuId);
+                            if (otherBtn && otherMenu) {
+                                otherMenu.classList.remove('active');
+                                otherBtn.classList.remove('active');
+                            }
+                        }
+                    });
+                }
+            });
+
+            // Prevent closing when clicking inside menu
+            menu.addEventListener('click', function (e) {
+                e.stopPropagation();
+            });
         }
     });
 
-    // Prevent dropdown from closing when clicking inside
-    dropdownMenu.addEventListener('click', function(e) {
-        e.stopPropagation();
+    // Close all when clicking outside
+    document.addEventListener('click', function (e) {
+        dropdowns.forEach(config => {
+            const btn = document.getElementById(config.btnId);
+            const menu = document.getElementById(config.menuId);
+            if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {
+                menu.classList.remove('active');
+                btn.classList.remove('active');
+            }
+        });
     });
 }
 
@@ -89,23 +120,23 @@ function initNavbar() {
     // Enhanced navbar scroll effect
     if (navbar) {
         let lastScrollY = window.scrollY;
-        
+
         window.addEventListener('scroll', debounce(() => {
             const currentScrollY = window.scrollY;
-            
+
             if (currentScrollY > 50) {
                 navbar.classList.add('scrolled');
             } else {
                 navbar.classList.remove('scrolled');
             }
-            
+
             // Hide/show navbar on scroll (optional - disable if you don't want this)
             if (currentScrollY > lastScrollY && currentScrollY > 200) {
                 navbar.style.transform = 'translateY(-100%)';
             } else {
                 navbar.style.transform = 'translateY(0)';
             }
-            
+
             lastScrollY = currentScrollY;
         }, 10));
     }
@@ -171,11 +202,11 @@ function initScrollAnimations() {
 function initVideoHandling() {
     const video = document.querySelector('video');
     const heroSection = document.querySelector('.hero');
-    
+
     if (!video || !heroSection) return;
 
     // Handle video loading error
-    video.addEventListener('error', function() {
+    video.addEventListener('error', function () {
         console.warn('Video failed to load, using fallback background');
         // Fallback: Create a gradient background if video fails
         const videoBackground = document.querySelector('.video-background');
@@ -209,7 +240,7 @@ function initVideoHandling() {
 // Flash messages auto-dismiss
 function initFlashMessages() {
     const alerts = document.querySelectorAll('.alert');
-    
+
     alerts.forEach(alert => {
         // Auto dismiss after 5 seconds
         setTimeout(() => {
@@ -253,19 +284,19 @@ function debounce(func, wait) {
 // Form validation for auth pages
 function initFormValidation() {
     const forms = document.querySelectorAll('.auth-form');
-    
+
     forms.forEach(form => {
-        form.addEventListener('submit', function(e) {
+        form.addEventListener('submit', function (e) {
             const password = form.querySelector('input[name="password"]');
             const confirmPassword = form.querySelector('input[name="confirm_password"]');
-            
+
             if (confirmPassword && password.value !== confirmPassword.value) {
                 e.preventDefault();
                 alert('Passwords do not match!');
                 confirmPassword.focus();
                 return false;
             }
-            
+
             if (password && password.value.length < 6) {
                 e.preventDefault();
                 alert('Password must be at least 6 characters long!');
@@ -282,7 +313,7 @@ document.addEventListener('DOMContentLoaded', initFormValidation);
 // Error handling for missing elements
 function handleMissingElements() {
     const requiredElements = ['.hero', '.categories-grid'];
-    
+
     requiredElements.forEach(selector => {
         const element = document.querySelector(selector);
         if (!element) {

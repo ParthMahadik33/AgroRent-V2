@@ -14,6 +14,8 @@
     "rent_dashboard": "Renting Dashboard",
     "list_dashboard": "Listing Dashboard",
     "mechanic_dashboard": "Mechanic Dashboard",
+    "heatmap": "Heatmap",
+    "mechanics_menu": "Mechanics",
     "logout": "Logout"
   },
   "language": {
@@ -110,7 +112,7 @@
       "filters": {
         "location": "Location / pincode",
         "specialization": "Specialization",
-      "all": "All",
+        "all": "All",
         "availability": "Availability",
         "available_now": "Available now",
         "submit": "Apply Filters"
@@ -212,4 +214,3 @@
     "footer": "© 2024 AgroRent. All rights reserved."
   }
 }
-

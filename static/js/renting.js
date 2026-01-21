@@ -5,7 +5,7 @@ let selectedStartDate = null;
 let selectedEndDate = null;
 let isSelectingRange = false;
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     let allListings = [];
     let currentListing = null;
 
@@ -59,10 +59,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function createListingCard(listing) {
         const card = document.createElement('div');
         card.className = 'listing-card';
-        
+
         const imageUrl = listing.main_image ? `/static/${listing.main_image}` : '/assets/carousel1.jpg';
         const priceDisplay = `₹${listing.price.toLocaleString()}`;
-        
+
         card.innerHTML = `
             <img src="${imageUrl}" alt="${listing.title}" class="card-image" onerror="this.src='/assets/carousel1.jpg'">
             <div class="card-body">
@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // View listing details
-    window.viewDetails = async function(listingId) {
+    window.viewDetails = async function (listingId) {
         try {
             const response = await fetch(`/api/listing/${listingId}`);
             const listing = await response.json();
@@ -243,6 +243,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="modal-info-value">${listing.phone} (${listing.contact_method})</div>
                     </div>
                 </div>
+                
+                <div class="modal-ai-section">
+                    <h3><i class="fas fa-robot"></i> AI Condition Detection</h3>
+                    <div id="ai-analysis-container-${listing.id}" class="ai-analysis-container">
+                        <button class="btn-ai-analyze" onclick="analyzeCondition('${mainImageUrl}', ${listing.id})">
+                            <i class="fas fa-magic"></i> Analyze Equipment Condition
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="modal-availability-calendar">
                 <h3><i class="fas fa-calendar-alt"></i> Select Rental Dates</h3>
@@ -284,7 +293,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset selection when opening modal
         selectedStartDate = null;
         selectedEndDate = null;
-        
+
         // Render calendar after modal is shown
         setTimeout(() => {
             renderAvailabilityCalendar(listing.id, pendingDates, confirmedDates, listing.available_from, listing.available_till);
@@ -305,14 +314,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const today = new Date();
         const currentMonth = today.getMonth();
         const currentYear = today.getFullYear();
-        
+
         // Parse available dates
         const availableFromDate = availableFrom ? new Date(availableFrom) : today;
         const availableTillDate = availableTill ? new Date(availableTill) : null;
-        
+
         // Generate calendar for current month and next 2 months
         let calendarHTML = '';
-        
+
         for (let monthOffset = 0; monthOffset < 3; monthOffset++) {
             const month = (currentMonth + monthOffset) % 12;
             const year = currentYear + Math.floor((currentMonth + monthOffset) / 12);
@@ -320,10 +329,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const lastDay = new Date(year, month + 1, 0);
             const daysInMonth = lastDay.getDate();
             const startingDayOfWeek = firstDay.getDay();
-            
-            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
-                               'July', 'August', 'September', 'October', 'November', 'December'];
-            
+
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+
             calendarHTML += `
                 <div class="calendar-month">
                     <div class="calendar-month-header">
@@ -340,12 +349,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <div class="calendar-days">
             `;
-            
+
             // Add empty cells for days before the first day of the month
             for (let i = 0; i < startingDayOfWeek; i++) {
                 calendarHTML += '<div class="calendar-day empty"></div>';
             }
-            
+
             // Add days of the month
             for (let day = 1; day <= daysInMonth; day++) {
                 const date = new Date(year, month, day);
@@ -354,20 +363,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 todayNormalized.setHours(0, 0, 0, 0);
                 // Format date as YYYY-MM-DD without timezone conversion
                 const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                
+
                 const isPending = pendingDatesSet.has(dateString);
                 const isConfirmed = confirmedDatesSet.has(dateString);
                 const isPast = date < todayNormalized;
                 const isBeforeAvailable = availableFromDate && date < availableFromDate;
                 const isAfterAvailable = availableTillDate && date > availableTillDate;
                 const isAvailable = !isPast && !isPending && !isConfirmed && !isBeforeAvailable && !isAfterAvailable;
-                
+
                 // Check if date is in selected range
                 let isSelected = false;
                 let isStartDate = false;
                 let isEndDate = false;
                 let isInRange = false;
-                
+
                 if (selectedStartDate && selectedEndDate) {
                     const start = new Date(selectedStartDate);
                     const end = new Date(selectedEndDate);
@@ -384,11 +393,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     isStartDate = true;
                     isSelected = true;
                 }
-                
+
                 let dayClass = 'calendar-day';
                 let title = '';
                 let clickable = false;
-                
+
                 if (isPast || isBeforeAvailable || isAfterAvailable) {
                     dayClass += ' disabled';
                     title = 'Not Available';
@@ -403,7 +412,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     title = 'Available - Click to select';
                     clickable = true;
                 }
-                
+
                 // Add selection classes - all dates in range get same color
                 if (isStartDate || isEndDate || isInRange) {
                     dayClass += ' selected-range';
@@ -414,51 +423,51 @@ document.addEventListener('DOMContentLoaded', function() {
                         dayClass += ' selected-end';
                     }
                 }
-                
+
                 // Add click handler for available dates
                 const clickHandler = clickable ? `onclick="selectDate('${dateString}', ${listingId})"` : '';
-                
+
                 calendarHTML += `<div class="${dayClass}" data-date="${dateString}" ${clickHandler} title="${title}">${day}</div>`;
             }
-            
+
             calendarHTML += `
                     </div>
                 </div>
             `;
         }
-        
+
         calendarContainer.innerHTML = calendarHTML;
-        
+
         // Update rent button state
         updateRentButtonState(listingId);
     }
 
     // Handle date selection with double-click to unselect
-    window.selectDate = function(dateString, listingId) {
+    window.selectDate = function (dateString, listingId) {
         // Parse date without timezone conversion to avoid day shift
         const parseDate = (dateStr) => {
             const [year, month, day] = dateStr.split('-').map(Number);
             return new Date(year, month - 1, day);
         };
-        
+
         const date = parseDate(dateString);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
         // Don't allow selecting past dates or booked dates
         if (date < today) return;
-        
+
         // Check if date is available (not booked or pending)
         const dayElement = document.querySelector(`[data-date="${dateString}"]`);
         if (!dayElement || dayElement.classList.contains('confirmed') || dayElement.classList.contains('disabled')) {
             return;
         }
-        
+
         // Check for double-click to unselect
         const now = Date.now();
         const lastClickTime = window.lastDateClickTime || 0;
         const lastClickDate = window.lastDateClickDate || '';
-        
+
         if (dateString === lastClickDate && (now - lastClickTime) < 300) {
             // Double-click detected - unselect
             if (selectedStartDate === dateString) {
@@ -475,17 +484,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 const start = parseDate(selectedStartDate);
                 const end = parseDate(selectedEndDate);
                 const clicked = parseDate(dateString);
-                
+
                 if (clicked >= start && clicked <= end) {
                     // If clicking in the middle of range, reset selection
                     selectedStartDate = null;
                     selectedEndDate = null;
                 }
             }
-            
+
             window.lastDateClickTime = 0;
             window.lastDateClickDate = '';
-            
+
             // Re-render calendar
             const listing = currentListing;
             if (listing) {
@@ -494,11 +503,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             return;
         }
-        
+
         // Track click for double-click detection
         window.lastDateClickTime = now;
         window.lastDateClickDate = dateString;
-        
+
         if (!selectedStartDate) {
             // First date selected - set as start date
             selectedStartDate = dateString;
@@ -512,7 +521,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             const start = parseDate(selectedStartDate);
             const end = parseDate(dateString);
-            
+
             if (end < start) {
                 // If end is before start, swap them
                 selectedEndDate = selectedStartDate;
@@ -520,7 +529,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 selectedEndDate = dateString;
             }
-            
+
             // Validate the range doesn't include booked dates
             if (validateDateRange(selectedStartDate, selectedEndDate, listingId)) {
                 isSelectingRange = false;
@@ -537,7 +546,7 @@ document.addEventListener('DOMContentLoaded', function() {
             selectedEndDate = null;
             isSelectingRange = true;
         }
-        
+
         // Re-render calendar with selection
         const listing = currentListing;
         if (listing) {
@@ -553,9 +562,9 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const response = await fetch(`/api/listing/${listingId}/availability`);
             const data = await response.json();
-            
+
             const confirmedDates = new Set(data.confirmed_dates || []);
-            
+
             const parseDate = (dateStr) => {
                 const [year, month, day] = dateStr.split('-').map(Number);
                 return new Date(year, month - 1, day);
@@ -563,7 +572,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const start = parseDate(startDate);
             const end = parseDate(endDate);
             const current = new Date(start);
-            
+
             while (current <= end) {
                 // Format date as YYYY-MM-DD without timezone conversion
                 const year = current.getFullYear();
@@ -575,7 +584,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 current.setDate(current.getDate() + 1);
             }
-            
+
             return true; // Range is valid
         } catch (error) {
             console.error('Error validating date range:', error);
@@ -602,22 +611,22 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => updateRentButtonState(listingId), 100);
             return;
         }
-        
+
         if (selectedStartDate && selectedEndDate) {
             // Parse dates without timezone conversion (YYYY-MM-DD format)
             const parseDate = (dateStr) => {
                 const [year, month, day] = dateStr.split('-').map(Number);
                 return new Date(year, month - 1, day);
             };
-            
+
             const start = parseDate(selectedStartDate);
             const end = parseDate(selectedEndDate);
             const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-            
+
             // Format dates for display
             const startFormatted = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             const endFormatted = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-            
+
             rentButtonContainer.innerHTML = `
                 <div class="selected-dates-summary">
                     <div class="selected-dates-info">
@@ -644,11 +653,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         <i class="fas fa-calendar"></i>
                         <div>
                             <div class="dates-range">Select end date</div>
-                            <div class="days-count">Start: ${(function() {
-                                const [year, month, day] = selectedStartDate.split('-').map(Number);
-                                const date = new Date(year, month - 1, day);
-                                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                            })()}</div>
+                            <div class="days-count">Start: ${(function () {
+                    const [year, month, day] = selectedStartDate.split('-').map(Number);
+                    const date = new Date(year, month - 1, day);
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                })()}</div>
                         </div>
                     </div>
                 </div>
@@ -669,7 +678,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Clear date selection
-    window.clearDateSelection = function(listingId) {
+    window.clearDateSelection = function (listingId) {
         selectedStartDate = null;
         selectedEndDate = null;
         const listing = currentListing;
@@ -679,15 +688,15 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // Complete rental from calendar selection
-    window.completeRentalFromCalendar = async function(listingId) {
+    window.completeRentalFromCalendar = async function (listingId) {
         if (!selectedStartDate || !selectedEndDate) {
             alert('Please select a date range on the calendar');
             return;
         }
-        
+
         const listing = currentListing;
         if (!listing) return;
-        
+
         // Calculate days (parse dates without timezone conversion)
         const parseDate = (dateStr) => {
             const [year, month, day] = dateStr.split('-').map(Number);
@@ -696,19 +705,19 @@ document.addEventListener('DOMContentLoaded', function() {
         const start = parseDate(selectedStartDate);
         const end = parseDate(selectedEndDate);
         const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-        
+
         // Validate one more time
         const isValid = await validateDateRange(selectedStartDate, selectedEndDate, listingId);
         if (!isValid) {
             alert('Selected dates are already booked. Please choose different dates.');
             return;
         }
-        
+
         // Calculate total amount
         const price = parseFloat(listing.price);
         const pricingType = listing.pricing_type;
         let totalAmount = 0;
-        
+
         if (pricingType === 'Per day') {
             totalAmount = price * days;
         } else if (pricingType === 'Per hour') {
@@ -718,12 +727,12 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             totalAmount = price;
         }
-        
+
         // Add transport charge if applicable
         if (listing.transport_included === 'No' && listing.transport_charge) {
             totalAmount += parseFloat(listing.transport_charge);
         }
-        
+
         // Show agreement preview modal
         showAgreementPreview(listingId, listing, selectedStartDate, selectedEndDate, days, totalAmount);
     };
@@ -734,22 +743,22 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const url = `/api/rentals/0/contract-preview?listing_id=${listingId}&start_date=${startDate}&end_date=${endDate}&days=${days}&total_amount=${totalAmount}`;
             const response = await fetch(url);
-            
+
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ message: 'Network error' }));
                 alert('Error loading agreement preview: ' + (errorData.message || `HTTP ${response.status}`));
                 return;
             }
-            
+
             const data = await response.json();
-            
+
             if (!data.success) {
                 alert('Error loading agreement preview: ' + (data.message || 'Unknown error'));
                 return;
             }
-            
+
             const contractData = data.data;
-            
+
             // Create agreement preview modal
             const modal = document.createElement('div');
             modal.className = 'agreement-modal';
@@ -811,7 +820,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
             `;
-            
+
             document.body.appendChild(modal);
             setTimeout(() => modal.classList.add('show'), 10);
             document.body.style.overflow = 'hidden';
@@ -820,9 +829,9 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Error loading agreement preview: ' + (error.message || 'Please try again.'));
         }
     }
-    
+
     // Close agreement modal
-    window.closeAgreementModal = function() {
+    window.closeAgreementModal = function () {
         const modal = document.getElementById('agreement-modal');
         if (modal) {
             modal.classList.remove('show');
@@ -832,41 +841,41 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 300);
         }
     }
-    
+
     // Submit rental with agreement data
-    window.submitRentalWithAgreement = async function(listingId, startDate, days, totalAmount) {
+    window.submitRentalWithAgreement = async function (listingId, startDate, days, totalAmount) {
         const renterAddress = document.getElementById('renter-address').value.trim();
         const locationOfUse = document.getElementById('location-of-use').value.trim();
-        
+
         if (!renterAddress) {
             alert('Please enter your address');
             return;
         }
-        
+
         if (!locationOfUse) {
             alert('Please specify the location where you will use the equipment');
             return;
         }
-        
+
         const formData = new FormData();
         formData.append('listing_id', listingId);
         formData.append('start_date', startDate);
         formData.append('days', days);
         formData.append('renter_address', renterAddress);
         formData.append('location_of_use', locationOfUse);
-        
+
         try {
             const response = await fetch('/rent_equipment', {
                 method: 'POST',
                 body: formData
             });
-            
+
             const data = await response.json();
-            
+
             if (data.success) {
                 // Close agreement modal
                 closeAgreementModal();
-                
+
                 // Show success message with contract download option
                 if (confirm('Rental request submitted successfully! The owner will review and approve your request.\n\nWould you like to download a draft copy of the agreement?')) {
                     // Generate and download contract (use POST method)
@@ -874,7 +883,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         const contractResponse = await fetch(`/api/rentals/${data.rental_id}/generate-contract`, {
                             method: 'POST'
                         });
-                        
+
                         if (contractResponse.ok) {
                             const blob = await contractResponse.blob();
                             const url = window.URL.createObjectURL(blob);
@@ -894,7 +903,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         alert('An error occurred while downloading the contract.');
                     }
                 }
-                
+
                 // Reset selection
                 selectedStartDate = null;
                 selectedEndDate = null;
@@ -927,7 +936,7 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('An error occurred. Please try again.');
         }
     }
-    
+
     // Escape HTML helper
     function escapeHtml(text) {
         const div = document.createElement('div');
@@ -941,15 +950,15 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.append('listing_id', listingId);
         formData.append('start_date', startDate);
         formData.append('days', days);
-        
+
         try {
             const response = await fetch('/rent_equipment', {
                 method: 'POST',
                 body: formData
             });
-            
+
             const data = await response.json();
-            
+
             if (data.success) {
                 alert('Rental request submitted successfully! The owner will review and approve your request.');
                 // Reset selection
@@ -985,7 +994,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Scroll to calendar
-    window.scrollToCalendar = function(listingId) {
+    window.scrollToCalendar = function (listingId) {
         const calendarSection = document.querySelector('.modal-availability-calendar');
         if (calendarSection) {
             calendarSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -998,7 +1007,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // Change main image in modal
-    window.changeMainImage = function(imageUrl) {
+    window.changeMainImage = function (imageUrl) {
         const mainImage = document.getElementById('main-modal-image');
         if (mainImage) {
             mainImage.src = imageUrl;
@@ -1013,7 +1022,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // Open rental form
-    window.openRentalForm = function(listingId) {
+    window.openRentalForm = function (listingId) {
         if (!currentListing || currentListing.id !== listingId) {
             // Reload listing details if needed
             viewDetails(listingId);
@@ -1037,7 +1046,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const todayMonth = String(todayDate.getMonth() + 1).padStart(2, '0');
         const todayDay = String(todayDate.getDate()).padStart(2, '0');
         const today = `${todayYear}-${todayMonth}-${todayDay}`;
-        
+
         // Format max date if available
         let maxDate = '';
         if (listing.available_till) {
@@ -1094,7 +1103,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Check for date conflicts in real-time
-    window.checkDateConflict = async function(listingId) {
+    window.checkDateConflict = async function (listingId) {
         const startDateInput = document.getElementById('start_date');
         const daysInput = document.getElementById('days');
         const conflictWarning = document.getElementById('conflict-warning');
@@ -1127,7 +1136,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Fetch current availability
             const response = await fetch(`/api/listing/${listingId}/availability`);
             const data = await response.json();
-            
+
             const pendingDates = new Set(data.pending_dates || []);
             const confirmedDates = new Set(data.confirmed_dates || []);
 
@@ -1194,7 +1203,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // Calculate total
-    window.calculateTotal = function(price, pricingType, transportCharge, transportIncluded) {
+    window.calculateTotal = function (price, pricingType, transportCharge, transportIncluded) {
         const days = parseInt(document.getElementById('days').value) || 0;
         let total = 0;
 
@@ -1223,7 +1232,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // Submit rental
-    window.submitRental = async function(event, listingId) {
+    window.submitRental = async function (event, listingId) {
         event.preventDefault();
 
         const formData = new FormData(event.target);
@@ -1272,19 +1281,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize event listeners
     function initEventListeners() {
         // Close modals
-        document.getElementById('close-modal').addEventListener('click', function() {
+        document.getElementById('close-modal').addEventListener('click', function () {
             document.getElementById('details-modal').classList.remove('show');
             document.body.style.overflow = 'visible';
         });
 
-        document.getElementById('close-rental-modal').addEventListener('click', function() {
+        document.getElementById('close-rental-modal').addEventListener('click', function () {
             document.getElementById('rental-modal').classList.remove('show');
             document.body.style.overflow = 'visible';
         });
 
         // Close on overlay click
         document.querySelectorAll('.modal-overlay').forEach(overlay => {
-            overlay.addEventListener('click', function(e) {
+            overlay.addEventListener('click', function (e) {
                 if (e.target === overlay) {
                     overlay.closest('.details-modal, .rental-modal').classList.remove('show');
                     document.body.style.overflow = 'visible';
@@ -1312,13 +1321,13 @@ document.addEventListener('DOMContentLoaded', function() {
         priceMinInput.addEventListener('input', debouncedFilter);
         priceMaxInput.addEventListener('input', debouncedFilter);
 
-        clearSearchBtn.addEventListener('click', function() {
+        clearSearchBtn.addEventListener('click', function () {
             if (searchInput.value.trim() === '') return;
             searchInput.value = '';
             applyFilters();
         });
 
-        resetBtn.addEventListener('click', function() {
+        resetBtn.addEventListener('click', function () {
             resetFilters({
                 searchInput,
                 categorySelect,
@@ -1329,7 +1338,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
-        locationInput.addEventListener('keypress', function(e) {
+        locationInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 applyFilters();
@@ -1349,7 +1358,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let filtered = [...allListings];
 
         if (categoryFilter) {
-            filtered = filtered.filter(listing => 
+            filtered = filtered.filter(listing =>
                 listing.category && listing.category.toLowerCase() === categoryFilter
             );
         }
@@ -1438,11 +1447,142 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function debounce(fn, delay = 250) {
         let timeoutId;
-        return function(...args) {
+        return function (...args) {
             clearTimeout(timeoutId);
             timeoutId = setTimeout(() => fn.apply(this, args), delay);
         };
     }
 });
 
+// AI Condition Analysis
+window.analyzeCondition = async function (imageUrl, listingId) {
+    const container = document.getElementById(`ai-analysis-container-${listingId}`);
+    if (!container) return;
 
+    // Helper function to call API
+    async function callGeminiAPI(model, content) {
+        const API_KEY = 'AIzaSyBELK4qovpgktyPwz5sTM-iH-XCZbVPg-c';
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(content)
+        });
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error?.message || `API request failed for ${model}`);
+        }
+        return response.json();
+    }
+
+    // Show loading state
+    container.innerHTML = `
+        <div class="ai-loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Analyzing image with Gemini 3 Flash Preview AI...</span>
+        </div>
+    `;
+
+    try {
+        const fullImageUrl = imageUrl.startsWith('http') ? imageUrl : window.location.origin + imageUrl;
+
+        let imageContent = '';
+        try {
+            const imgResponse = await fetch(imageUrl);
+            const blob = await imgResponse.blob();
+            imageContent = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.readAsDataURL(blob);
+            });
+        } catch (e) {
+            console.error("Error fetching local image:", e);
+            throw new Error("Could not access image for analysis.");
+        }
+
+        const requestBody = {
+            contents: [{
+                parts: [
+                    {
+                        text: "Analyze this agricultural machinery image. Provide a precise maintenance condition score (0-100) based on visible rust, tire wear, paint fade, and structural integrity. Be strict. Also provide a short, specific 1-sentence review mentioning exactly what you see (e.g. 'faded paint on hood', 'worn rear tires'). Return ONLY valid JSON format: { \"score\": number, \"review\": \"string\" }."
+                    },
+                    {
+                        inlineData: {
+                            mimeType: "image/jpeg",
+                            data: imageContent
+                        }
+                    }
+                ]
+            }],
+            generationConfig: {
+                responseMimeType: "application/json"
+            }
+        };
+
+        // Try Primary Model: Gemini 3 Flash Preview
+        let data;
+        let modelUsed = "Gemini 3 Flash Preview";
+
+        try {
+            console.log("Attempting Gemini 3 Flash Preview...");
+            data = await callGeminiAPI("gemini-3-flash-preview", requestBody);
+        } catch (primaryError) {
+            console.warn("Gemini 3 failed, falling back to Gemini 1.5 Flash:", primaryError);
+            // Fallback: Gemini 1.5 Flash
+            modelUsed = "Gemini 1.5 Flash (Fallback)";
+            container.querySelector('.ai-loading span').innerText = "Switching to Gemini 1.5 Flash (Fallback)...";
+            data = await callGeminiAPI("gemini-1.5-flash-001", requestBody);
+        }
+
+        console.log("Gemini API Response:", data);
+
+        if (!data.candidates || data.candidates.length === 0) {
+            let errorMsg = "No analysis generated.";
+            if (data.promptFeedback && data.promptFeedback.blockReason) {
+                errorMsg = `Analysis blocked: ${data.promptFeedback.blockReason}`;
+            }
+            throw new Error(errorMsg);
+        }
+
+        const textResponse = data.candidates[0].content.parts[0].text;
+        const result = JSON.parse(textResponse);
+
+        const score = result.score;
+        const analysisText = result.review;
+
+        // Render Result
+        const scoreColor = score >= 85 ? '#4CAF50' : (score >= 70 ? '#8BC34A' : (score >= 50 ? '#FFC107' : '#F44336'));
+
+        container.innerHTML = `
+            <div class="ai-result" style="border-left: 4px solid ${scoreColor}; background: #f9f9f9; padding: 1rem; border-radius: 8px; margin-top: 10px;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="position: relative; width: 60px; height: 60px;">
+                        <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-90deg);">
+                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#eee" stroke-width="3" />
+                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="${scoreColor}" stroke-width="3" stroke-dasharray="${score}, 100" />
+                        </svg>
+                        <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 14px; color: ${scoreColor};">${score}</span>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 5px 0; color: #333;">Gemini AI Assessment</h4>
+                        <p style="margin: 0; font-size: 0.9rem; color: #555;">${analysisText}</p>
+                    </div>
+                </div>
+                <div style="margin-top: 10px; font-size: 0.75rem; color: #999; text-align: right;">
+                    Analysis by Google ${modelUsed}
+                </div>
+            </div>
+        `;
+
+    } catch (error) {
+        console.error('AI Analysis Error:', error);
+        container.innerHTML = `
+            <div class="ai-error" style="color: #d32f2f; padding: 10px; background: #ffebee; border-radius: 5px; margin-top: 10px;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Analysis failed: ${error.message}</span>
+                <div style="margin-top: 5px;">
+                    <button style="border: none; background: transparent; color: #d32f2f; text-decoration: underline; cursor: pointer;" onclick="analyzeCondition('${imageUrl}', ${listingId})">Retry</button>
+                </div>
+            </div>
+        `;
+    }
+};

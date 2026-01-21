@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, jsonify, g, send_file
+from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_babel import Babel
+from google import genai
 import sqlite3
 import os
 from functools import wraps
@@ -20,6 +22,7 @@ except ImportError:
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Secret key for session management
+CORS(app)  # Enable CORS for chatbot API
 
 SUPPORTED_LANGUAGES = ['en', 'hi', 'mr']
 LANGUAGE_NAMES = {
@@ -2239,6 +2242,125 @@ def update_mechanic_request_status(request_id):
     conn.close()
 
     return jsonify({'success': True, 'status': new_status})
+
+
+@app.route('/heatmap')
+def heatmap():
+    """Heatmap visualization page"""
+    return render_template('heatmap.html')
+
+
+@app.route('/api/heatmap_locations')
+def get_heatmap_locations():
+    """Get aggregated location data for heatmap"""
+    conn = get_db()
+    # Group by location fields to get density. 
+    # Using village_city, district, state to form a unique address.
+    locations = conn.execute('''
+        SELECT village_city, district, state, COUNT(*) as count
+        FROM listings
+        GROUP BY village_city, district, state
+    ''').fetchall()
+    conn.close()
+
+    result = []
+    for loc in locations:
+        # Construct a clean address string parts
+        result.append({
+            'address': f"{loc['village_city']}, {loc['district']}, {loc['state']}, India",
+            'weight': loc['count']
+        })
+    
+    return jsonify(result)
+
+
+# Chatbot configuration
+API_KEY = "AIzaSyCGYenagLMP4D7n0PFxap4lE5MPT0BoJWg"
+
+PLATFORM_DATA = """
+AgroRent Platform Information:
+
+About AgroRent:
+AgroRent is a comprehensive agricultural equipment rental platform connecting farmers with equipment owners. We make farming more affordable and accessible by enabling equipment sharing.
+
+Services Offered:
+1. Equipment Rental - Tractors, harvesters, plows, seeders, sprayers
+2. Booking System - Easy online booking with calendar availability
+3. Delivery Service - Equipment delivered to your farm
+4. Maintenance Support - All equipment is well-maintained and insured
+5. Flexible Pricing - Hourly, daily, and weekly rental options
+
+How to Book:
+1. Browse available equipment
+2. Check availability calendar
+3. Select rental duration
+4. Complete payment
+5. Equipment delivered to your location
+
+Websites links for traversal:
+Renting: https://agrorent-r3i4.onrender.com/renting
+About: https://agrorent-r3i4.onrender.com/about
+Market overview: https://agrorent-r3i4.onrender.com/market
+Listings: https://agrorent-r3i4.onrender.com/listing
+Heatmap: https://agrorent-r3i4.onrender.com/heatmap
+Mechanics: https://agrorent-r3i4.onrender.com/mechanics
+
+Contact Information:
+- Phone: +91 9930235462
+- Email: parthmahadik752@gmail.com
+- Hours: 24/7 customer support
+
+Coverage Area:
+We serve rural and agricultural areas across multiple states. Check availability in your region.
+
+Benefits:
+- Save money on expensive equipment purchases
+- Access latest farming technology
+- No maintenance hassles
+- Flexible rental periods
+- Trained operators available on request
+"""
+
+client = genai.Client(api_key=API_KEY)
+
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    try:
+        data = request.json
+        user_message = data.get('message', '')
+        
+        if not user_message:
+            return jsonify({'error': 'No message provided'}), 400
+        
+        # Create system prompt with platform data
+        system_prompt = f"""You are a helpful customer support chatbot for AgroRent, an agricultural equipment rental platform.
+
+{PLATFORM_DATA}
+
+Instructions:
+- Be friendly, helpful, and concise
+- Answer questions about equipment, pricing, booking, and services
+- Any farming related questions, answer them with the most relevant information from your intelligence example:" have x acres of land what equipemnt should i rent".
+- If asked about something not in the data, politely say you'll connect them with support
+- Keep responses brief (2-3 sentences) unless detailed information is requested
+- Use a warm, professional tone suitable for farmers
+- If someone wants to book, guide them through the process
+- If someone wants to rent equipment, guide them through the process and provide links from platform data clickable if possible
+"""
+        
+        # Generate response using Gemini
+        response = client.models.generate_content(
+            model="gemini-3-flash-preview",
+            contents=f"{system_prompt}\n\nUser: {user_message}\n\nAssistant:"
+        )
+        
+        bot_response = response.text
+        
+        return jsonify({'response': bot_response})
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':
